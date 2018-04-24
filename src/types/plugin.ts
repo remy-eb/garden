@@ -16,7 +16,7 @@ import {
   Primitive,
   PrimitiveMap,
 } from "./common"
-import { Service, ServiceContext, ServiceStatus } from "./service"
+import { Service, RuntimeContext, ServiceStatus } from "./service"
 import { LogEntry } from "../logger"
 import { Stream } from "ts-stream"
 import { Moment } from "moment"
@@ -96,6 +96,7 @@ export interface TestModuleParams<T extends Module = Module> extends PluginActio
   module: T
   testName: string
   testSpec: TestSpec
+  runtimeContext: RuntimeContext
   env: Environment
 }
 
@@ -113,7 +114,7 @@ export interface GetServiceStatusParams<T extends Module = Module> extends Plugi
 
 export interface DeployServiceParams<T extends Module = Module> extends PluginActionParamsBase {
   service: Service<T>,
-  serviceContext: ServiceContext,
+  runtimeContext: RuntimeContext,
   env: Environment,
 }
 

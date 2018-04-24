@@ -8,15 +8,19 @@
 
 import { DeploymentError, NotFoundError } from "../../exceptions"
 import {
-  ConfigureEnvironmentParams, DeleteConfigParams,
+  ConfigureEnvironmentParams,
+  DeleteConfigParams,
   DestroyEnvironmentParams,
-  ExecInServiceParams, GetConfigParams,
+  ExecInServiceParams,
+  GetConfigParams,
   GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
-  GetServiceStatusParams, GetTestResultParams,
+  GetServiceStatusParams,
+  GetTestResultParams,
   SetConfigParams,
-  TestModuleParams, TestResult,
+  TestModuleParams,
+  TestResult,
 } from "../../types/plugin"
 import { TreeVersion } from "../../vcs/base"
 import {
@@ -176,12 +180,11 @@ export async function execInService(
 }
 
 export async function testModule(
-  { ctx, provider, module, testName, testSpec }: TestModuleParams<ContainerModule>,
+  { ctx, provider, module, testName, testSpec, runtimeContext }: TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
-  // TODO: include a service context here
   const context = provider.config.context
   const baseEnv = {}
-  const envVars = { ...baseEnv, ...testSpec.variables }
+  const envVars = { ...baseEnv, ...runtimeContext.envVars, ...testSpec.variables }
   const envArgs = Object.entries(envVars).map(([v, k]) => `--env=${k}=${v}`)
 
   // TODO: use the runModule() method
