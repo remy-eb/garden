@@ -7,17 +7,15 @@
  */
 
 import { Command } from "../base"
-import { EnvironmentConfigureCommand } from "./configure"
-import { EnvironmentDestroyCommand } from "./destroy"
+import { RunModuleCommand } from "./module"
 
-export class EnvironmentCommand extends Command {
-  name = "environment"
-  alias = "env"
-  help = "Manage your runtime environment(s)"
+export class RunCommand extends Command {
+  name = "run"
+  alias = "r"
+  help = "Run ad-hoc instances of your modules, services and tests"
 
   subCommands = [
-    new EnvironmentConfigureCommand(),
-    new EnvironmentDestroyCommand(),
+    new RunModuleCommand(),
   ]
 
   async action() { }

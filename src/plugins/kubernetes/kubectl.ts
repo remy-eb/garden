@@ -116,11 +116,8 @@ export class Kubectl {
     return JSON.parse(result.output)
   }
 
-  async tty(
-    args: string[],
-    { silent = true, ignoreError = false, timeout = KUBECTL_DEFAULT_TIMEOUT } = {},
-  ): Promise<KubectlOutput> {
-    return spawnPty("kubectl", this.prepareArgs(args), { silent, ignoreError, timeout })
+  async tty(args: string[], opts: KubectlParams = {}): Promise<KubectlOutput> {
+    return spawnPty("kubectl", this.prepareArgs(args), opts)
   }
 
   spawn(args: string[]): ChildProcess {

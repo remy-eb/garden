@@ -18,6 +18,8 @@ import {
   GetServiceOutputsParams,
   GetServiceStatusParams,
   GetTestResultParams,
+  RunModuleParams,
+  RunResult,
   SetConfigParams,
   TestModuleParams,
   TestResult,
@@ -179,51 +181,76 @@ export async function execInService(
   return { code: res.code, output: res.output }
 }
 
-export async function testModule(
-  { ctx, provider, module, testName, testSpec, runtimeContext }: TestModuleParams<ContainerModule>,
-): Promise<TestResult> {
+export async function runModule(
+  { ctx, provider, module, command, interactive, runtimeContext, timeout }: RunModuleParams<ContainerModule>,
+): Promise<RunResult> {
   const context = provider.config.context
-  const baseEnv = {}
-  const envVars = { ...baseEnv, ...runtimeContext.envVars, ...testSpec.variables }
-  const envArgs = Object.entries(envVars).map(([v, k]) => `--env=${k}=${v}`)
+  const namespace = getAppNamespace(ctx, provider)
+
+  const envArgs = Object.entries(runtimeContext.envVars).map(([v, k]) => `--env=${k}=${v}`)
 
   // TODO: use the runModule() method
-  const testCommandStr = testSpec.command.join(" ")
+  const commandStr = command.join(" ")
   const image = await module.getLocalImageId()
   const version = await module.getVersion()
 
-  const kubecmd = [
-    "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
+  const opts = [
     `--image=${image}`,
     "--restart=Never",
     "--command",
-    "-i",
     "--tty",
     "--rm",
+  ]
+
+  if (interactive) {
+    opts.push("-i")
+  }
+
+  const kubecmd = [
+    "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
+    ...opts,
     ...envArgs,
     "--",
     "/bin/sh",
     "-c",
-    testCommandStr,
+    commandStr,
   ]
 
   const startedAt = new Date()
 
-  const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
-  const res = await kubectl(context, getAppNamespace(ctx, provider)).tty(kubecmd, { ignoreError: true, timeout })
+  const res = await kubectl(context, namespace).tty(kubecmd, { ignoreError: true, timeout })
 
-  const testResult: TestResult = {
+  return {
     moduleName: module.name,
-    testName,
+    command,
     version,
     success: res.code === 0,
     startedAt,
     completedAt: new Date(),
     output: res.output,
   }
+}
+
+export async function testModule(
+  { ctx, provider, env, module, testName, testSpec, runtimeContext }: TestModuleParams<ContainerModule>,
+): Promise<TestResult> {
+  const command = testSpec.command
+  const interactive = true
+  runtimeContext.envVars = { ...runtimeContext.envVars, ...testSpec.variables }
+  const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
+
+  const result = await runModule({ ctx, provider, env, module, command, interactive, timeout, runtimeContext })
+
+  const context = provider.config.context
+
+  // store test result
+  const testResult: TestResult = {
+    ...result,
+    testName,
+  }
 
   const ns = getMetadataNamespace(ctx, provider)
-  const resultKey = getTestResultKey(module, testName, version)
+  const resultKey = getTestResultKey(module, testName, result.version)
   const body = {
     body: {
       apiVersion: "v1",
