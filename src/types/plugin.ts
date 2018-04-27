@@ -95,9 +95,10 @@ export interface RunModuleParams<T extends Module = Module> extends PluginAction
 
 export interface TestModuleParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T
+  interactive: boolean
+  runtimeContext: RuntimeContext
   testName: string
   testSpec: TestSpec
-  runtimeContext: RuntimeContext
 }
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginActionParamsBase {

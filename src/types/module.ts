@@ -13,6 +13,7 @@ import { DeployTask } from "../tasks/deploy"
 import { TestTask } from "../tasks/test"
 import {
   identifierRegex,
+  joiEnvVars,
   joiIdentifier,
   joiPrimitive,
   joiVariables,
@@ -28,6 +29,7 @@ import {
   values,
 } from "lodash"
 import {
+  baseServiceSchema,
   RuntimeContext,
   Service,
   ServiceConfig,
@@ -196,16 +198,29 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     return tasks
   }
 
-  async prepareRuntimeContext(dependencies: Service<any>[]): Promise<RuntimeContext> {
+  async prepareRuntimeContext(dependencies: Service<any>[], extraEnvVars: PrimitiveMap = {}): Promise<RuntimeContext> {
     const { versionString } = await this.getVersion()
     const envVars = {
       GARDEN_VERSION: versionString,
     }
-    const deps = {}
 
-    for (const key in this.ctx.config.variables) {
-      envVars[key] = this.ctx.config.variables[key]
+    validate(extraEnvVars, joiEnvVars(), `environment variables for module ${this.name}`)
+
+    for (const [envVarName, value] of Object.entries(extraEnvVars)) {
+      if (envVarName.startsWith("GARDEN")) {
+        throw new ConfigurationError(`Environment variable name cannot start with "GARDEN"`, {
+          envVarName,
+        })
+      }
+      envVars[envVarName] = value
     }
+
+    for (const [key, value] of Object.entries(this.ctx.config.variables)) {
+      const envVarName = `GARDEN_VARIABLES_${key.replace(/-/g, "_").toUpperCase()}`
+      envVars[envVarName] = value
+    }
+
+    const deps = {}
 
     for (const dep of dependencies) {
       const depContext = deps[dep.name] = {
@@ -231,12 +246,6 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 }
 
 export type ModuleConfigType<T extends Module> = T["_ConfigType"]
-
-export const baseServiceSchema = Joi.object()
-  .keys({
-    dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
-  })
-  .options({ allowUnknown: true })
 
 export const baseServicesSchema = Joi.object()
   .pattern(identifierRegex, baseServiceSchema)

@@ -4,6 +4,7 @@ module:
   services:
     hello-container:
       command: [npm, start]
+      test: [npm, run, integ]
       ports:
         http:
           containerPort: 8080
@@ -16,13 +17,11 @@ module:
           port: http
       dependencies:
         - hello-function
+      env:
+        FUNCTION_ENDPOINT: ${dependencies.hello-function.outputs.endpoint}
   build:
     dependencies:
       - hello-npm-package
   test:
     unit:
       command: [npm, test]
-    integ:
-      command: [npm, run, integ]
-      dependencies:
-        - hello-function

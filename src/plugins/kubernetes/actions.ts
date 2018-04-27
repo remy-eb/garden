@@ -187,7 +187,7 @@ export async function runModule(
   const context = provider.config.context
   const namespace = getAppNamespace(ctx, provider)
 
-  const envArgs = Object.entries(runtimeContext.envVars).map(([v, k]) => `--env=${k}=${v}`)
+  const envArgs = Object.entries(runtimeContext.envVars).map(([k, v]) => `--env=${k}=${v}`)
 
   // TODO: use the runModule() method
   const commandStr = command.join(" ")
@@ -232,10 +232,9 @@ export async function runModule(
 }
 
 export async function testModule(
-  { ctx, provider, env, module, testName, testSpec, runtimeContext }: TestModuleParams<ContainerModule>,
+  { ctx, provider, env, interactive, module, testName, testSpec, runtimeContext }: TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const command = testSpec.command
-  const interactive = true
   runtimeContext.envVars = { ...runtimeContext.envVars, ...testSpec.variables }
   const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
 

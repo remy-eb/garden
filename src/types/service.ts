@@ -7,9 +7,14 @@
  */
 
 import Bluebird = require("bluebird")
+import * as Joi from "joi"
 import { PluginContext } from "../plugin-context"
 import { Module } from "./module"
-import { PrimitiveMap } from "./common"
+import {
+  joiEnvVars,
+  joiIdentifier,
+  PrimitiveMap,
+} from "./common"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateStrings, TemplateOpts, TemplateStringContext } from "../template-string"
 
@@ -27,7 +32,15 @@ export interface ServiceEndpoint {
 
 export interface ServiceConfig {
   dependencies: string[]
+  env: PrimitiveMap
 }
+
+export const baseServiceSchema = Joi.object()
+  .keys({
+    dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
+    env: joiEnvVars(),
+  })
+  .unknown(true)
 
 export interface ServiceStatus {
   providerId?: string

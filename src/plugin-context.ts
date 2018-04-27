@@ -21,10 +21,7 @@ import { DeployTask } from "./tasks/deploy"
 import {
   PrimitiveMap,
 } from "./types/common"
-import {
-  Module,
-  TestSpec,
-} from "./types/module"
+import { Module } from "./types/module"
 import {
   BuildResult,
   BuildStatus,
@@ -41,6 +38,7 @@ import {
   ModuleActions,
   PluginActionParamsBase,
   RunResult,
+  TestModuleParams,
 } from "./types/plugin"
 import {
   Service,
@@ -55,6 +53,7 @@ import {
   padEnd,
 } from "lodash"
 import {
+  Omit,
   registerCleanupFunction,
   sleep,
 } from "./util"
@@ -72,6 +71,8 @@ export interface ContextStatus {
   providers: EnvironmentStatusMap
   services: { [name: string]: ServiceStatus }
 }
+
+export type OmitBase<T extends PluginActionParamsBase> = Omit<T, keyof PluginActionParamsBase>
 
 export type WrappedFromGarden = Pick<Garden,
   "projectName" |
@@ -101,9 +102,7 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   runModule: <T extends Module>(
     module: T, command: string[], runtimeContext: RuntimeContext, interactive: boolean, logEntry?: LogEntry,
   ) => Promise<RunResult>,
-  testModule: <T extends Module>(
-    module: T, testName: string, testSpec: TestSpec, runtimeContext: RuntimeContext, logEntry?: LogEntry,
-  ) => Promise<TestResult>
+  testModule: <T extends Module>(params: OmitBase<TestModuleParams<T>>) => Promise<TestResult>
   getTestResult: <T extends Module>(
     module: T, testName: string, version: TreeVersion, logEntry?: LogEntry,
   ) => Promise<TestResult | null>
@@ -114,6 +113,9 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   deployService: <T extends Module>(
     service: Service<T>, runtimeContext?: RuntimeContext, logEntry?: LogEntry,
   ) => Promise<ServiceStatus>
+  testService: <T extends Module>(
+    service: Service<T>, runtimeContext?: RuntimeContext, logEntry?: LogEntry,
+  ) => Promise<TestResult>
   getServiceOutputs: <T extends Module>(service: Service<T>) => Promise<PrimitiveMap>
   execInService: <T extends Module>(service: Service<T>, command: string[]) => Promise<ExecInServiceResult>
   getServiceLogs: <T extends Module>(
@@ -213,12 +215,13 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ...commonParams(handler), module, command, runtimeContext, interactive, logEntry })
     },
 
-    testModule: async <T extends Module>(
-      module: T, testName: string, testSpec: TestSpec, runtimeContext: RuntimeContext, logEntry?: LogEntry,
-    ) => {
+    testModule: async <T extends Module>(params: OmitBase<TestModuleParams<T>>) => {
+      const module = params.module
+
       const defaultHandler = garden.getModuleActionHandler("testModule", "generic")
       const handler = garden.getModuleActionHandler("testModule", module.type, defaultHandler)
-      return handler({ ...commonParams(handler), module, testName, testSpec, runtimeContext, logEntry })
+
+      return handler({ ...commonParams(handler), ...params })
     },
 
     getTestResult: async <T extends Module>(

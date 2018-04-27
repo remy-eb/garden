@@ -8,6 +8,7 @@
 
 import * as sywac from "sywac"
 import chalk from "chalk"
+import { RunCommand } from "./commands/run"
 import { shutdown } from "./util"
 import { merge, intersection, reduce } from "lodash"
 import {
@@ -217,15 +218,16 @@ export class GardenCli {
     const commands = [
       new BuildCommand(),
       new CallCommand(),
+      new ConfigCommand(),
       new DeployCommand(),
       new DevCommand(),
       new EnvironmentCommand(),
       new LogsCommand(),
-      new TestCommand(),
-      new ConfigCommand(),
-      new ValidateCommand(),
-      new StatusCommand(),
       new PushCommand(),
+      new RunCommand(),
+      new StatusCommand(),
+      new TestCommand(),
+      new ValidateCommand(),
     ]
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
@@ -241,12 +243,13 @@ export class GardenCli {
   }
 
   addCommand(command: Command, program): void {
-    if (this.commands[command.name]) {
-      // For now we don't allow multiple definitions of the same command. We may want to revisit this later.
-      throw new PluginError(`Multiple definitions of command "${command.name}"`, {})
-    }
-
-    this.commands[command.name] = command
+    // TODO: make this check work properly with subcommands
+    // if (this.commands[command.name]) {
+    //   // For now we don't allow multiple definitions of the same command. We may want to revisit this later.
+    //   throw new PluginError(`Multiple definitions of command "${command.name}"`, {})
+    // }
+    //
+    // this.commands[command.name] = command
 
     const args = command.arguments as Parameter<any>
     const options = command.options as Parameter<any>

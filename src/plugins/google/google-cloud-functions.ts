@@ -49,6 +49,7 @@ export const gcfServicesSchema = Joi.object()
     path: Joi.string().default("."),
     project: Joi.string(),
   }))
+  .unknown(false)
   .default(() => ({}), "{}")
 
 export class GoogleCloudFunctionsModule extends Module<GoogleCloudFunctionsModuleConfig> { }

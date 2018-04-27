@@ -116,7 +116,7 @@ const serviceSchema = baseServiceSchema
     healthCheck: healthCheckSchema,
     ports: Joi.object().pattern(identifierRegex, portSchema).default(() => ({}), "{}"),
     volumes: Joi.array().items(volumeSchema).default(() => [], "[]"),
-  })
+  }).unknown(false)
 
 const containerSchema = baseModuleSchema.keys({
   type: Joi.string().allow("container").required(),

@@ -11,26 +11,16 @@ import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
-import {
-  flatMap,
-  uniq,
-  values,
-} from "lodash"
 import { printRuntimeContext } from "./index"
 
 export const runArgs = {
-  module: new StringParameter({
-    help: "The name of the module to run",
-    required: true,
-  }),
-  command: new StringParameter({
+  service: new StringParameter({
     help: "The command to run in the module",
+    required: true,
   }),
 }
 
 export const runOpts = {
-  // TODO: we could provide specific parameters like this by adding commands for specific modules, via plugins
-  //entrypoint: new StringParameter({ help: "Override default entrypoint in module" }),
   interactive: new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result",
     defaultValue: true,
@@ -41,25 +31,22 @@ export const runOpts = {
 export type Args = ParameterValues<typeof runArgs>
 export type Opts = ParameterValues<typeof runOpts>
 
-export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
-  name = "module"
-  alias = "m"
-  help = "Run the specified module"
+export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
+  name = "service"
+  alias = "s"
+  help = "Run an ad-hoc instance of the specified service"
 
   arguments = runArgs
   options = runOpts
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<RunResult> {
-    const name = args.module
-    const module = await ctx.getModule(name)
-
-    const msg = args.command
-      ? `Running command ${chalk.white(args.command)} in module ${chalk.white(name)}`
-      : `Running module ${chalk.white(name)}`
+    const name = args.service
+    const service = await ctx.getService(name)
+    const module = service.module
 
     ctx.log.header({
       emoji: "runner",
-      command: msg,
+      command: `Running service ${chalk.cyan(name)} in module ${chalk.cyan(module.name)}`,
     })
 
     await ctx.configureEnvironment()
@@ -68,13 +55,8 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
     await ctx.addTask(buildTask)
     await ctx.processTasks()
 
-    const command = args.command.split(" ")
-
-    // combine all dependencies for all services in the module, to be sure we all the context we need
-    const services = values(await module.getServices())
-    const deps = uniq(flatMap(services.map(s => s.config.dependencies)))
-
-    const runtimeContext = await module.prepareRuntimeContext(deps)
+    const command = service.config.command
+    const runtimeContext = await module.prepareRuntimeContext(service.config.dependencies)
 
     printRuntimeContext(ctx, runtimeContext)
 

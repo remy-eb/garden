@@ -6,8 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { safeDump } from "js-yaml"
+import { PluginContext } from "../../plugin-context"
+import { RuntimeContext } from "../../types/service"
+import { highlightYaml } from "../../util"
 import { Command } from "../base"
 import { RunModuleCommand } from "./module"
+import { RunServiceCommand } from "./service"
+import { RunTestCommand } from "./test"
 
 export class RunCommand extends Command {
   name = "run"
@@ -16,7 +22,18 @@ export class RunCommand extends Command {
 
   subCommands = [
     new RunModuleCommand(),
+    new RunServiceCommand(),
+    new RunTestCommand(),
   ]
 
   async action() { }
+}
+
+export function printRuntimeContext(ctx: PluginContext, runtimeContext: RuntimeContext) {
+  ctx.log.verbose("-----------------------------------\n")
+  ctx.log.verbose("Environment variables:")
+  ctx.log.verbose(highlightYaml(safeDump(runtimeContext.envVars)))
+  ctx.log.verbose("Dependencies:")
+  ctx.log.verbose(highlightYaml(safeDump(runtimeContext.dependencies)))
+  ctx.log.verbose("-----------------------------------\n")
 }

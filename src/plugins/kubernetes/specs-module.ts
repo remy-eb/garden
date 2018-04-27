@@ -55,7 +55,7 @@ const specsServicesSchema = joiIdentifierMap(baseServiceSchema.keys({
   specs: Joi.array().items(k8sSpecSchema).required(),
   // TODO: support spec files as well
   // specFiles: Joi.array().items(Joi.string()),
-}))
+}).unknown(false))
 
 export const kubernetesSpecHandlers = {
   parseModule: async ({ ctx, moduleConfig }: ParseModuleParams): Promise<KubernetesSpecsModule> => {

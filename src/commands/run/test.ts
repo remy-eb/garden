@@ -7,15 +7,12 @@
  */
 
 import chalk from "chalk"
+import { ParameterError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
-import {
-  flatMap,
-  uniq,
-  values,
-} from "lodash"
+import { values } from "lodash"
 import { printRuntimeContext } from "./index"
 
 export const runArgs = {
@@ -23,14 +20,13 @@ export const runArgs = {
     help: "The name of the module to run",
     required: true,
   }),
-  command: new StringParameter({
-    help: "The command to run in the module",
+  test: new StringParameter({
+    help: "The name of the test to run in the module",
+    required: true,
   }),
 }
 
 export const runOpts = {
-  // TODO: we could provide specific parameters like this by adding commands for specific modules, via plugins
-  //entrypoint: new StringParameter({ help: "Override default entrypoint in module" }),
   interactive: new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result",
     defaultValue: true,
@@ -41,25 +37,33 @@ export const runOpts = {
 export type Args = ParameterValues<typeof runArgs>
 export type Opts = ParameterValues<typeof runOpts>
 
-export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
-  name = "module"
-  alias = "m"
-  help = "Run the specified module"
+export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
+  name = "test"
+  alias = "t"
+  help = "Run the specified module test"
 
   arguments = runArgs
   options = runOpts
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<RunResult> {
-    const name = args.module
-    const module = await ctx.getModule(name)
+    const moduleName = args.module
+    const testName = args.test
+    const module = await ctx.getModule(moduleName)
+    const config = await module.getConfig()
 
-    const msg = args.command
-      ? `Running command ${chalk.white(args.command)} in module ${chalk.white(name)}`
-      : `Running module ${chalk.white(name)}`
+    const testSpec = config.test[testName]
+
+    if (!testSpec) {
+      throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
+        moduleName,
+        testName,
+        availableTests: Object.keys(config.test),
+      })
+    }
 
     ctx.log.header({
       emoji: "runner",
-      command: msg,
+      command: `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
     })
 
     await ctx.configureEnvironment()
@@ -68,16 +72,12 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
     await ctx.addTask(buildTask)
     await ctx.processTasks()
 
-    const command = args.command.split(" ")
-
-    // combine all dependencies for all services in the module, to be sure we all the context we need
-    const services = values(await module.getServices())
-    const deps = uniq(flatMap(services.map(s => s.config.dependencies)))
-
-    const runtimeContext = await module.prepareRuntimeContext(deps)
+    const interactive = opts.interactive
+    const deps = await ctx.getServices(testSpec.dependencies)
+    const runtimeContext = await module.prepareRuntimeContext(values(deps))
 
     printRuntimeContext(ctx, runtimeContext)
 
-    return ctx.runModule(module, command, runtimeContext, opts.interactive)
+    return ctx.testModule({ module, testName, testSpec, runtimeContext, interactive })
   }
 }
