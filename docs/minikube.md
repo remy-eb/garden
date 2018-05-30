@@ -1,31 +1,24 @@
-## Using Garden with Minikube
+# Using Garden with Minikube
 
 Garden can be used with [Minikube](https://github.com/kubernetes/minikube) on supported platforms.
 
-### Installation
+## Installation
 
-For Minikube installation instructions, please see the 
-[official guide](https://github.com/kubernetes/minikube#installation).
-You'll likely also need to install a driver to run the Minikube VM, please follow the 
-[instructions here](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver)
-and note the name of the driver.
- 
+For Minikube installation instructions, please see the [official guide](https://github.com/kubernetes/minikube#installation). You'll likely also need to install a driver to run the Minikube VM, please follow the [instructions here](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver) and note the name of the driver.
+
 Once Minikube and the appropriate driver for your OS is installed, you can start it by running:
 
-    minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
-    
-You'll also need to have Docker (for macOS, we recommend [Docker for Mac](https://docs.docker.com/engine/installation/))
-and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed.
+```text
+minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
+```
 
-_NOTE: Garden is not yet officially supported on Windows, but we have every intention to support it. 
-Please file any issues and we will try and respond promptly._
+You'll also need to have Docker \(for macOS, we recommend [Docker for Mac](https://docs.docker.com/engine/installation/)\) and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed.
 
-### Usage
+_NOTE: Garden is not yet officially supported on Windows, but we have every intention to support it. Please file any issues and we will try and respond promptly._
 
-The `local-kubernetes` plugin attempts to automatically detect if it is installed and set the appropriate context 
-for connecting to the local Kubernetes instance. In most cases you should not have to update your `garden.yml`
-since it uses the `local-kubernetes` plugin by default, but you can configure it explicitly in your project
-`garden.yml` like so:
+## Usage
+
+The `local-kubernetes` plugin attempts to automatically detect if it is installed and set the appropriate context for connecting to the local Kubernetes instance. In most cases you should not have to update your `garden.yml` since it uses the `local-kubernetes` plugin by default, but you can configure it explicitly in your project `garden.yml` like so:
 
 ```yaml
 project:
@@ -33,20 +26,16 @@ project:
     - name: local
       providers:
         - name: local-kubernetes
-          context: minikube    
-``` 
+          context: minikube
+```
 
-_Note: If you happen to have installed both Minikube and the Docker for Mac version with Kubernetes enabled,
-`garden` will choose whichever one is configured as the current context in your `kubectl` configuration, and if neither
-is set as the current context, Docker for Mac is preferred by default._
+_Note: If you happen to have installed both Minikube and the Docker for Mac version with Kubernetes enabled,_ `garden` _will choose whichever one is configured as the current context in your_ `kubectl` _configuration, and if neither is set as the current context, Docker for Mac is preferred by default._
 
-### Hostname
+## Hostname
 
-Garden needs the Kubernetes instance to have a hostname. By default Garden will use `<minikube-ip>.nip.io`. If you'd 
-like to use a custom hostname, you can specify it via the `ingressHostname` in the `local-kubernetes` provider config
-(see above).
+Garden needs the Kubernetes instance to have a hostname. By default Garden will use `<minikube-ip>.nip.io`. If you'd like to use a custom hostname, you can specify it via the `ingressHostname` in the `local-kubernetes` provider config \(see above\).
 
-### Anything else?
+## Anything else?
 
-Once the above is set up, the `local-kubernetes` plugin will automatically configure everything else Garden needs to 
-work. The built-in nginx ingress controller will be automatically enabled and used to route requests to services.
+Once the above is set up, the `local-kubernetes` plugin will automatically configure everything else Garden needs to work. The built-in nginx ingress controller will be automatically enabled and used to route requests to services.
+
