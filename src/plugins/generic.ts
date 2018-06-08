@@ -34,6 +34,7 @@ import {
 } from "../types/plugin/params"
 import {
   ServiceConfig,
+  ServiceSpec,
 } from "../types/service"
 import {
   BaseTestSpec,
@@ -66,7 +67,7 @@ export const genericModuleSpecSchema = Joi.object()
   .unknown(false)
   .description("The module specification for a generic module.")
 
-export class GenericModule extends Module<GenericModuleSpec, ServiceConfig, GenericTestSpec> { }
+export class GenericModule extends Module<GenericModuleSpec, ServiceSpec, GenericTestSpec> { }
 
 export async function parseGenericModule(
   { moduleConfig }: ParseModuleParams<GenericModule>,

@@ -8,7 +8,11 @@
 
 import Bluebird = require("bluebird")
 import * as Joi from "joi"
-import { ConfigurationError } from "../exceptions"
+import {
+  ConfigurationError,
+  ParameterError,
+  RuntimeError,
+} from "../exceptions"
 import { PluginContext } from "../plugin-context"
 import {
   resolveTemplateStrings,
@@ -192,6 +196,61 @@ export class Service<M extends Module = Module> {
    */
   getEnvVarName() {
     return this.name.replace("-", "_").toUpperCase()
+  }
+
+  /**
+   * Returns the external endpoint URL for the specified path.
+   * Throws if service is not running or the path doesn't match any deployed endpoint.
+   */
+  async getEndpoint(path: string): Promise<ServiceEndpoint> {
+    // get the deployed endpoints from the service status
+    const status = await this.ctx.getServiceStatus({ serviceName: this.name })
+
+    if (status.state !== "ready") {
+      throw new RuntimeError(`Service ${this.name} is not running`, {
+        serviceName: this.name,
+        state: status.state,
+      })
+    }
+
+    if (!status.endpoints) {
+      throw new ParameterError(`Service ${this.name} has no active endpoints`, {
+        serviceName: this.name,
+        serviceStatus: status,
+      })
+    }
+
+    // find the correct endpoint to call
+    let matchedEndpoint
+    let matchedPath
+
+    for (const endpoint of status.endpoints) {
+      // we can't easily support raw TCP or UDP in a command like this
+      if (endpoint.protocol !== "http" && endpoint.protocol !== "https") {
+        continue
+      }
+
+      if (endpoint.paths) {
+        for (const endpointPath of endpoint.paths) {
+          if (path.startsWith(endpointPath) && (!matchedPath || endpointPath.length > matchedPath.length)) {
+            matchedPath = endpointPath
+            matchedEndpoint = endpoint
+          }
+        }
+      } else if (!matchedPath) {
+        matchedEndpoint = endpoint
+      }
+    }
+
+    if (!matchedEndpoint) {
+      throw new ParameterError(`Service ${this.name} does not have an HTTP/HTTPS endpoint at ${path}`, {
+        serviceName: this.name,
+        path,
+        availableEndpoints: status.endpoints,
+      })
+    }
+
+    return matchedEndpoint
   }
 
   /**

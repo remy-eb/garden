@@ -1,0 +1,7 @@
+module:
+  type: aws-lambda
+  packageSources: [index.js]
+  services:
+    hello-lambda:
+      handler: index.handler
+      runtime: nodejs8.10

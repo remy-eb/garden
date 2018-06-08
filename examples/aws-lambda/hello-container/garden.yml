@@ -1,0 +1,32 @@
+module:
+  description: Hello world container service
+  type: container
+  services:
+    - name: hello-container
+      command: [npm, start]
+      ports:
+        - name: http
+          containerPort: 8080
+      endpoints:
+        - paths: [/hello]
+          port: http
+      healthCheck:
+        httpGet:
+          path: /_ah/health
+          port: http
+      dependencies:
+        - hello-gcf
+        - hello-lambda
+      env:
+        GCF_ENDPOINT: ${dependencies.hello-gcf.outputs.host}
+        LAMBDA_ENDPOINT: ${dependencies.hello-lambda.outputs.host}
+  build:
+    dependencies:
+      - hello-npm-package
+  tests:
+    - name: unit
+      command: [npm, test]
+    - name: integ
+      command: [npm, run, integ]
+      dependencies:
+        - hello-gcf

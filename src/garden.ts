@@ -40,6 +40,7 @@ import {
   pluginActionDescriptions,
   pluginModuleSchema,
   pluginSchema,
+  Provider,
   RegisterPluginParam,
 } from "./types/plugin"
 import { EnvironmentConfig } from "./types/project"
@@ -310,6 +311,22 @@ export class Garden {
     return this.taskGraph.processTasks()
   }
 
+  getProvider(name: string): Provider {
+    let config = findByName(this.config.providers, name)
+
+    if (!config) {
+      throw new PluginError(`Could not find configuration for provider ${name}`, {
+        name,
+        configuredProviders: getNames(this.config.providers),
+      })
+    }
+
+    return {
+      name,
+      config,
+    }
+  }
+
   private registerPlugin(moduleOrFactory: RegisterPluginParam) {
     let factory: PluginFactory
     let name: string
@@ -401,14 +418,17 @@ export class Garden {
 
     this.loadedPlugins[pluginName] = plugin
 
+    // make sure a provider config is added, even if empty
+    let providerConfig = findByName(this.config.providers, pluginName)
+
+    if (!providerConfig) {
+      providerConfig = { name: pluginName }
+      this.config.providers.push(providerConfig)
+    }
+
     // allow plugins to extend their own config (that gets passed to action handlers)
     if (plugin.config) {
-      const providerConfig = findByName(this.config.providers, pluginName)
-      if (providerConfig) {
-        extend(providerConfig, plugin.config)
-      } else {
-        this.config.providers.push(plugin.config)
-      }
+      extend(providerConfig, plugin.config)
     }
 
     for (const modulePath of plugin.modules || []) {
@@ -590,6 +610,8 @@ export class Garden {
     Scans the project root for modules and adds them to the context.
    */
   async scanModules() {
+    this.modulesScanned = true
+
     const ignorer = await getIgnorer(this.projectRoot)
     const scanOpts = {
       filter: (path) => {
@@ -617,8 +639,6 @@ export class Garden {
       const module = await this.resolveModule(path)
       module && await this.addModule(module)
     }
-
-    this.modulesScanned = true
 
     await this.detectCircularDependencies()
   }

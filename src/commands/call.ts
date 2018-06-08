@@ -56,51 +56,7 @@ export class CallCommand extends Command<typeof callArgs> {
 
     // TODO: better error when service doesn't exist
     const service = await ctx.getService(serviceName)
-    const status = await ctx.getServiceStatus({ serviceName })
-
-    if (status.state !== "ready") {
-      throw new RuntimeError(`Service ${service.name} is not running`, {
-        serviceName: service.name,
-        state: status.state,
-      })
-    }
-
-    if (!status.endpoints) {
-      throw new ParameterError(`Service ${service.name} has no active endpoints`, {
-        serviceName: service.name,
-        serviceStatus: status,
-      })
-    }
-
-    // find the correct endpoint to call
-    let matchedEndpoint
-    let matchedPath
-
-    for (const endpoint of status.endpoints) {
-      // we can't easily support raw TCP or UDP in a command like this
-      if (endpoint.protocol !== "http" && endpoint.protocol !== "https") {
-        continue
-      }
-
-      if (endpoint.paths) {
-        for (const endpointPath of endpoint.paths) {
-          if (path.startsWith(endpointPath) && (!matchedPath || endpointPath.length > matchedPath.length)) {
-            matchedPath = endpointPath
-            matchedEndpoint = endpoint
-          }
-        }
-      } else if (!matchedPath) {
-        matchedEndpoint = endpoint
-      }
-    }
-
-    if (!matchedEndpoint) {
-      throw new ParameterError(`Service ${service.name} does not have an HTTP/HTTPS endpoint at ${path}`, {
-        serviceName: service.name,
-        path,
-        availableEndpoints: status.endpoints,
-      })
-    }
+    const matchedEndpoint = await service.getEndpoint(path)
 
     const url = resolve(matchedEndpoint.url, path)
     // TODO: support POST requests with request body

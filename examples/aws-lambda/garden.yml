@@ -1,0 +1,19 @@
+project:
+  name: hello-world
+  global:
+    providers:
+      - name: container
+      - name: npm-package
+    variables:
+      my-variable: hello-variable
+  environments:
+    - name: local
+      providers:
+        - name: local-kubernetes
+        - name: local-google-cloud-functions
+        - name: local-aws
+    - name: dev
+      providers:
+        - name: google-app-engine
+        - name: google-cloud-functions
+          default-project: garden-hello-world

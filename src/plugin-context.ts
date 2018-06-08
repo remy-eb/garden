@@ -126,6 +126,7 @@ export type WrappedFromGarden = Pick<Garden,
   "localConfigStore" |
   "vcs" |
   "clearBuilds" |
+  "getProvider" |
   "getEnvironment" |
   "getModules" |
   "getModule" |
@@ -203,13 +204,9 @@ export function createPluginContext(garden: Garden): PluginContext {
   }
 
   const projectConfig = { ...garden.config }
-  const providerConfigs = keyBy(projectConfig.providers, "name")
 
   function getProvider(handler): Provider {
-    return {
-      name: handler["pluginName"],
-      config: providerConfigs[handler["pluginName"]],
-    }
+    return garden.getProvider(handler["pluginName"] || "generic")
   }
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
@@ -282,6 +279,7 @@ export function createPluginContext(garden: Garden): PluginContext {
     getEnvironment: wrap(garden.getEnvironment),
     getModules: wrap(garden.getModules),
     getModule: wrap(garden.getModule),
+    getProvider: wrap(garden.getProvider),
     getServices: wrap(garden.getServices),
     getService: wrap(garden.getService),
     getTemplateContext: wrap(garden.getTemplateContext),
