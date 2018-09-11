@@ -64,6 +64,7 @@ export class DeployTask extends Task {
       ctx: this.ctx,
       module: this.service.module,
       force: this.forceBuild,
+      version: this.version,
     }))
 
     return deps
@@ -85,7 +86,7 @@ export class DeployTask extends Task {
     })
 
     // TODO: get version from build task results
-    const { versionString } = await this.service.module.version
+    const { versionString } = this.service.module.version
     const status = await this.ctx.getServiceStatus({ serviceName: this.service.name, logEntry })
 
     if (
@@ -108,7 +109,7 @@ export class DeployTask extends Task {
     let result: ServiceStatus
     try {
       result = await this.ctx.deployService({
-        serviceName: this.service.name,
+        service: this.service,
         runtimeContext: await prepareRuntimeContext(this.ctx, this.service.module, dependencies),
         logEntry,
         force: this.force,

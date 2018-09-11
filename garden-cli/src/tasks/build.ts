@@ -13,11 +13,13 @@ import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
 import { BuildResult } from "../types/plugin/outputs"
 import { Task } from "../tasks/base"
+import { ModuleVersion } from "../vcs/base"
 
 export interface BuildTaskParams {
   ctx: PluginContext
   module: Module
   force: boolean
+  version?: ModuleVersion
 }
 
 export class BuildTask extends Task {
@@ -26,8 +28,8 @@ export class BuildTask extends Task {
   private ctx: PluginContext
   private module: Module
 
-  constructor({ ctx, force, module }: BuildTaskParams) {
-    super({ force, version: module.version })
+  constructor({ ctx, force, module, version }: BuildTaskParams) {
+    super({ force, version: version || module.version })
     this.ctx = ctx
     this.module = module
   }
@@ -65,7 +67,7 @@ export class BuildTask extends Task {
     let result: BuildResult
     try {
       result = await this.ctx.buildModule({
-        moduleName,
+        module: this.module,
         logEntry,
       })
     } catch (err) {

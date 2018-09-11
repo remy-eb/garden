@@ -97,7 +97,7 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
 
     printRuntimeContext(ctx, runtimeContext)
 
-    const result = await ctx.testModule({ moduleName, interactive, runtimeContext, silent: false, testConfig })
+    const result = await ctx.testModule({ module, interactive, runtimeContext, silent: false, testConfig })
 
     return { result }
   }

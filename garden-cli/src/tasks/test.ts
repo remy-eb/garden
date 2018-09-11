@@ -117,7 +117,7 @@ export class TestTask extends Task {
     try {
       result = await this.ctx.testModule({
         interactive: false,
-        moduleName: this.module.name,
+        module: this.module,
         runtimeContext,
         silent: true,
         testConfig: this.testConfig,

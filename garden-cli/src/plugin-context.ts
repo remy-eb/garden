@@ -104,6 +104,13 @@ export type PluginContextServiceParams<T extends PluginServiceActionParamsBase> 
   Omit<T, "module" | "service" | "runtimeContext" | keyof PluginActionContextParams>
   & { serviceName: string, runtimeContext?: RuntimeContext, pluginName?: string }
 
+// Temporary fix
+export type PluginContextBuildModuleParams<T extends PluginModuleActionParamsBase> =
+  Omit<T, keyof PluginActionContextParams> & { pluginName?: string }
+export type PluginContextDeployServiceParams<T extends PluginServiceActionParamsBase> =
+  Omit<T, "module" | "runtimeContext" | keyof PluginActionContextParams>
+  & { runtimeContext?: RuntimeContext, pluginName?: string }
+
 export type WrappedFromGarden = Pick<Garden,
   "projectName" |
   "projectRoot" |
@@ -136,20 +143,20 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
 
   getModuleBuildStatus: <T extends Module>(params: PluginContextModuleParams<GetModuleBuildStatusParams<T>>)
     => Promise<BuildStatus>
-  buildModule: <T extends Module>(params: PluginContextModuleParams<BuildModuleParams<T>>)
+  buildModule: <T extends Module>(params: PluginContextBuildModuleParams<BuildModuleParams<T>>)
     => Promise<BuildResult>
   pushModule: <T extends Module>(params: PluginContextModuleParams<PushModuleParams<T>>)
     => Promise<PushResult>
   runModule: <T extends Module>(params: PluginContextModuleParams<RunModuleParams<T>>)
     => Promise<RunResult>,
-  testModule: <T extends Module>(params: PluginContextModuleParams<TestModuleParams<T>>)
+  testModule: <T extends Module>(params: PluginContextBuildModuleParams<TestModuleParams<T>>)
     => Promise<TestResult>
   getTestResult: <T extends Module>(params: PluginContextModuleParams<GetTestResultParams<T>>)
     => Promise<TestResult | null>
 
   getServiceStatus: <T extends Module>(params: PluginContextServiceParams<GetServiceStatusParams<T>>)
     => Promise<ServiceStatus>
-  deployService: <T extends Module>(params: PluginContextServiceParams<DeployServiceParams<T>>)
+  deployService: <T extends Module>(params: PluginContextDeployServiceParams<DeployServiceParams<T>>)
     => Promise<ServiceStatus>
   deleteService: <T extends Module>(params: PluginContextServiceParams<DeleteServiceParams<T>>)
     => Promise<ServiceStatus>
@@ -370,10 +377,22 @@ export function createPluginContext(garden: Garden): PluginContext {
       })
     },
 
-    buildModule: async <T extends Module>(params: PluginContextModuleParams<BuildModuleParams<T>>) => {
-      const module = await garden.getModule(params.moduleName)
+    buildModule: async <T extends Module>(params: PluginContextBuildModuleParams<BuildModuleParams<T>>) => {
+      const module = params.module
       await garden.buildDir.syncDependencyProducts(module)
-      return callModuleHandler({ params, actionType: "buildModule" })
+
+      const buildHandler = garden.getModuleActionHandler({
+        actionType: "buildModule",
+        moduleType: module.type,
+        pluginName: params.pluginName,
+      })
+
+      return buildHandler({
+        ctx,
+        module,
+        env: garden.getEnvironment(),
+        provider: getProvider(buildHandler),
+      })
     },
 
     pushModule: async <T extends Module>(params: PluginContextModuleParams<PushModuleParams<T>>) => {
@@ -384,8 +403,24 @@ export function createPluginContext(garden: Garden): PluginContext {
       return callModuleHandler({ params, actionType: "runModule" })
     },
 
-    testModule: async <T extends Module>(params: PluginContextModuleParams<TestModuleParams<T>>) => {
-      return callModuleHandler({ params, actionType: "testModule" })
+    testModule: async <T extends Module>(params: PluginContextBuildModuleParams<TestModuleParams<T>>) => {
+      const { module, silent, interactive, testConfig } = params
+      const testHandler = garden.getModuleActionHandler({
+        actionType: "testModule",
+        moduleType: module.type,
+        pluginName: params.pluginName,
+      })
+
+      return testHandler({
+        ctx,
+        module,
+        silent,
+        interactive,
+        testConfig,
+        env: garden.getEnvironment(),
+        provider: getProvider(testHandler),
+        runtimeContext: params.runtimeContext,
+      })
     },
 
     getTestResult: async <T extends Module>(params: PluginContextModuleParams<GetTestResultParams<T>>) => {
@@ -406,8 +441,26 @@ export function createPluginContext(garden: Garden): PluginContext {
       return callServiceHandler({ params, actionType: "getServiceStatus" })
     },
 
-    deployService: async (params: PluginContextServiceParams<DeployServiceParams>) => {
-      return callServiceHandler({ params, actionType: "deployService" })
+    deployService: async (params: PluginContextDeployServiceParams<DeployServiceParams>) => {
+      const service = params.service
+      const module = service.module
+
+      const deployHandler = garden.getModuleActionHandler({
+        actionType: "deployService",
+        moduleType: module.type,
+        pluginName: params.pluginName,
+      })
+
+      const deps = await garden.getServices(service.config.dependencies)
+
+      return deployHandler({
+        ctx,
+        module,
+        service,
+        env: garden.getEnvironment(),
+        provider: getProvider(deployHandler),
+        runtimeContext: params.runtimeContext || await prepareRuntimeContext(ctx, module, deps),
+      })
     },
 
     deleteService: async (params: PluginContextServiceParams<DeleteServiceParams>) => {
