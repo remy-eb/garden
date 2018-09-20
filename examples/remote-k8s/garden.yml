@@ -10,7 +10,7 @@ project:
   - name: remote
     providers:
     - name: kubernetes
-      context: my-remote-context
+      context: garden-dev-1
       defaultHostname: my-cluster.example.com   # change this to the hostname that points to your cluster
       forceSsl: true
       tlsCertificates:
