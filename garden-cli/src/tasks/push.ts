@@ -12,9 +12,11 @@ import { Module } from "../types/module"
 import { PushResult } from "../types/plugin/outputs"
 import { Task } from "../tasks/base"
 import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
 
 export interface PushTaskParams {
   garden: Garden
+  log: LogEntry
   module: Module
   forceBuild: boolean
 }
@@ -25,8 +27,8 @@ export class PushTask extends Task {
   private module: Module
   private forceBuild: boolean
 
-  constructor({ garden, module, forceBuild }: PushTaskParams) {
-    super({ garden, version: module.version })
+  constructor({ garden, log, module, forceBuild }: PushTaskParams) {
+    super({ garden, log, version: module.version })
     this.module = module
     this.forceBuild = forceBuild
   }
@@ -34,6 +36,7 @@ export class PushTask extends Task {
   async getDependencies() {
     return [new BuildTask({
       garden: this.garden,
+      log: this.log,
       module: this.module,
       force: this.forceBuild,
     })]
@@ -60,7 +63,7 @@ export class PushTask extends Task {
       return { pushed: false }
     }
 
-    const logEntry = this.garden.log.info({
+    const log = this.log.info({
       section: this.module.name,
       msg: "Pushing",
       status: "active",
@@ -68,16 +71,16 @@ export class PushTask extends Task {
 
     let result: PushResult
     try {
-      result = await this.garden.actions.pushModule({ module: this.module, logEntry })
+      result = await this.garden.actions.pushModule({ module: this.module, log })
     } catch (err) {
-      logEntry.setError()
+      log.setError()
       throw err
     }
 
     if (result.pushed) {
-      logEntry.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
+      log.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
     } else if (result.message) {
-      logEntry.setWarn({ msg: result.message, append: true })
+      log.setWarn({ msg: result.message, append: true })
     }
 
     return result

@@ -134,25 +134,25 @@ export class FancyTerminalWriter extends Writer {
     )
   }
 
-  private handleGraphChange(logEntry: LogEntry, logger: Logger, didWrite: boolean = false) {
+  private handleGraphChange(log: LogEntry, logger: Logger, didWrite: boolean = false) {
     this.updatePending = false
 
     // Suspend processing and write immediately if a lot of data is being intercepted, e.g. when user is typing in input
-    if (logEntry.fromStdStream() && !didWrite) {
+    if (log.fromStdStream() && !didWrite) {
       const now = Date.now()
       const throttleProcessing = this.lastInterceptAt && (now - this.lastInterceptAt) < FANCY_LOGGER_THROTTLE_MS
       this.lastInterceptAt = now
 
       if (throttleProcessing) {
         this.stopLoop()
-        this.stream.write(renderMsg(logEntry))
+        this.stream.write(renderMsg(log))
         this.updatePending = true
 
         // Resume processing if idle and original update is still pending
         const maybeResume = async () => {
           await sleep(FANCY_LOGGER_THROTTLE_MS)
           if (this.updatePending) {
-            this.handleGraphChange(logEntry, logger, true)
+            this.handleGraphChange(log, logger, true)
           }
         }
         maybeResume()
@@ -161,7 +161,7 @@ export class FancyTerminalWriter extends Writer {
     }
 
     const terminalEntries = this.toTerminalEntries(logger)
-    const nextEntry = terminalEntries.find(e => e.key === logEntry.key)
+    const nextEntry = terminalEntries.find(e => e.key === log.key)
 
     // Nothing to do, e.g. because entry level is higher than writer level
     if (!nextEntry) {
@@ -238,12 +238,12 @@ export class FancyTerminalWriter extends Writer {
     return terminalEntries.map(e => e.text).join("").split("\n")
   }
 
-  public onGraphChange(logEntry: LogEntry, logger: Logger): void {
+  public onGraphChange(log: LogEntry, logger: Logger): void {
     if (!this.stream) {
       this.stream = this.initStream(logger)
     }
 
-    this.handleGraphChange(logEntry, logger, false)
+    this.handleGraphChange(log, logger, false)
   }
 
   public stop(): void {

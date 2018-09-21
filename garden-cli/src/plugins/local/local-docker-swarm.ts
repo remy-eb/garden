@@ -45,12 +45,12 @@ export const gardenPlugin = (): GardenPlugin => ({
       getServiceStatus,
 
       async deployService(
-        { ctx, module, service, runtimeContext, logEntry }: DeployServiceParams<ContainerModule>,
+        { ctx, module, service, runtimeContext, log }: DeployServiceParams<ContainerModule>,
       ) {
         // TODO: split this method up and test
         const { versionString } = service.module.version
 
-        logEntry && logEntry.info({ section: service.name, msg: `Deploying version ${versionString}` })
+        log.info({ section: service.name, msg: `Deploying version ${versionString}` })
 
         const identifier = await helpers.getLocalImageId(module)
         const ports = service.spec.ports.map(p => {
@@ -116,7 +116,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         }
 
         const docker = getDocker()
-        const serviceStatus = await getServiceStatus({ ctx, service, module, runtimeContext, logEntry })
+        const serviceStatus = await getServiceStatus({ ctx, service, module, runtimeContext, log })
         let swarmServiceStatus
         let serviceId
 
@@ -124,14 +124,14 @@ export const gardenPlugin = (): GardenPlugin => ({
           const swarmService = await docker.getService(serviceStatus.providerId)
           swarmServiceStatus = await swarmService.inspect()
           opts.version = parseInt(swarmServiceStatus.Version.Index, 10)
-          logEntry && logEntry.verbose({
+          log.verbose({
             section: service.name,
             msg: `Updating existing Swarm service (version ${opts.version})`,
           })
           await swarmService.update(opts)
           serviceId = serviceStatus.providerId
         } else {
-          logEntry && logEntry.verbose({
+          log.verbose({
             section: service.name,
             msg: `Creating new Swarm service`,
           })
@@ -167,12 +167,12 @@ export const gardenPlugin = (): GardenPlugin => ({
           }
         }
 
-        logEntry && logEntry.info({
+        log.info({
           section: service.name,
           msg: `Ready`,
         })
 
-        return getServiceStatus({ ctx, module, service, runtimeContext, logEntry })
+        return getServiceStatus({ ctx, module, service, runtimeContext, log })
       },
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<ContainerModule>) {
@@ -182,14 +182,14 @@ export const gardenPlugin = (): GardenPlugin => ({
       },
 
       async execInService(
-        { ctx, service, command, runtimeContext, logEntry }: ExecInServiceParams<ContainerModule>,
+        { ctx, service, command, runtimeContext, log }: ExecInServiceParams<ContainerModule>,
       ) {
         const status = await getServiceStatus({
           ctx,
           service,
           module: service.module,
           runtimeContext,
-          logEntry,
+          log,
         })
 
         if (!status.state || status.state !== "ready") {

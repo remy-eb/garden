@@ -69,7 +69,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
     // TODO Update remotes in parallel. Currently not possible since updating might
     // trigger a username and password prompt from git.
     for (const { name, repositoryUrl } of projectSources) {
-      await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "project", logEntry: garden.log })
+      await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "project", log: garden.log })
     }
 
     await pruneRemoteSources({ projectRoot: garden.projectRoot, type: "project", sources: projectSources })

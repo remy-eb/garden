@@ -61,12 +61,12 @@ export async function validate(params: ValidateModuleParams<ContainerModule>) {
 }
 
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
-  const { ctx, logEntry, service } = params
+  const { ctx, log, service } = params
   const namespace = await getAppNamespace(ctx, ctx.provider)
   const provider = ctx.provider
 
   await deleteContainerService(
-    { provider, namespace, serviceName: service.name, logEntry })
+    { provider, namespace, serviceName: service.name, log })
 
   return getContainerServiceStatus(params)
 }
@@ -175,7 +175,7 @@ export async function runModule(
 }
 
 export async function runService(
-  { ctx, service, interactive, runtimeContext, silent, timeout, logEntry }:
+  { ctx, service, interactive, runtimeContext, silent, timeout, log }:
     RunServiceParams<ContainerModule>,
 ) {
   return runModule({
@@ -186,12 +186,12 @@ export async function runService(
     runtimeContext,
     silent,
     timeout,
-    logEntry,
+    log,
   })
 }
 
 export async function testModule(
-  { ctx, interactive, module, runtimeContext, silent, testConfig, logEntry }:
+  { ctx, interactive, module, runtimeContext, silent, testConfig, log }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
@@ -207,7 +207,7 @@ export async function testModule(
     runtimeContext,
     silent,
     timeout,
-    logEntry,
+    log,
   })
 
   const api = new KubeApi(ctx.provider)

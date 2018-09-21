@@ -398,7 +398,7 @@ export class Garden {
       plugin = await factory({
         projectName: this.projectName,
         config,
-        logEntry: this.log,
+        log: this.log,
       })
     } catch (error) {
       throw new PluginError(`Unexpected error when loading plugin "${pluginName}": ${error}`, {
@@ -814,7 +814,7 @@ export class Garden {
       return linked.path
     }
 
-    const path = await this.vcs.ensureRemoteSource({ name, sourceType, url: repositoryUrl, logEntry: this.log })
+    const path = await this.vcs.ensureRemoteSource({ name, sourceType, url: repositoryUrl, log: this.log })
 
     return path
   }

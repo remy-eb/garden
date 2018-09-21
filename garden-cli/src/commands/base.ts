@@ -14,6 +14,7 @@ import { TaskResults } from "../task-graph"
 import { LoggerType } from "../logger/logger"
 import { ProcessResults } from "../process"
 import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
 
 export class ValidationError extends Error { }
 
@@ -188,6 +189,7 @@ export interface CommandParams<T extends Parameters = {}, U extends Parameters =
   args: ParameterValues<T>
   opts: ParameterValues<U>
   garden: Garden
+  log: LogEntry
 }
 
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {

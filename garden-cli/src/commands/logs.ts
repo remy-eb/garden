@@ -55,7 +55,7 @@ export class LogsCommand extends Command<Args, Opts> {
   options = logsOpts
   loggerType = LoggerType.basic
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const tail = opts.tail
     const services = await garden.getServices(args.service)
 
@@ -87,7 +87,7 @@ export class LogsCommand extends Command<Args, Opts> {
     // NOTE: This will work differently when we have Elasticsearch set up for logging, but is
     //       quite servicable for now.
     await Bluebird.map(services, async (service: Service<any>) => {
-      await garden.actions.getServiceLogs({ service, stream, tail })
+      await garden.actions.getServiceLogs({ service, stream, tail, log })
     })
 
     return { result }

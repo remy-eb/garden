@@ -296,18 +296,18 @@ interface WaitParams {
   provider: KubernetesProvider,
   service: Service,
   objects: KubernetesObject[],
-  logEntry?: LogEntry,
+  log: LogEntry,
 }
 
 /**
  * Wait until the rollout is complete for each of the given Kubernetes objects
  */
-export async function waitForObjects({ ctx, provider, service, objects, logEntry }: WaitParams) {
+export async function waitForObjects({ ctx, provider, service, objects, log }: WaitParams) {
   let loops = 0
   let lastMessage
   const startTime = new Date().getTime()
 
-  logEntry && logEntry.verbose({
+  log.verbose({
     symbol: "info",
     section: service.name,
     msg: `Waiting for service to be ready...`,
@@ -335,7 +335,7 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
 
       if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
-        logEntry && logEntry.verbose({
+        log.verbose({
           symbol: "info",
           section: service.name,
           msg: status.lastMessage,
@@ -356,7 +356,7 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
     }
   }
 
-  logEntry && logEntry.verbose({ symbol: "info", section: service.name, msg: `Service deployed` })
+  log.verbose({ symbol: "info", section: service.name, msg: `Service deployed` })
 }
 
 /**

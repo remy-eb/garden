@@ -232,9 +232,11 @@ export class GardenCli {
           contextOpts.config = MOCK_CONFIG
         }
         garden = await Garden.factory(root, contextOpts)
+        const log = garden.log.info()
         // TODO: enforce that commands always output DeepPrimitiveMap
         result = await command.action({
           garden,
+          log,
           args: parsedArgs,
           opts: parsedOpts,
         })

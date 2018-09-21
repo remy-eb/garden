@@ -62,7 +62,11 @@ export class GetSecretCommand extends Command<typeof getSecretArgs> {
 
   async action({ garden, args }: CommandParams<GetArgs>): Promise<CommandResult> {
     const key = args.key
-    const { value } = await garden.actions.getSecret({ pluginName: args.provider, key })
+    const { value } = await garden.actions.getSecret({
+      pluginName: args.provider,
+      key,
+      log: garden.log.info(),
+    })
 
     if (value === null || value === undefined) {
       throw new NotFoundError(`Could not find config key ${key}`, { key })
@@ -79,7 +83,7 @@ export class GetStatusCommand extends Command {
   help = "Outputs the status of your environment."
 
   async action({ garden }: CommandParams): Promise<CommandResult<ContextStatus>> {
-    const status = await garden.actions.getStatus()
+    const status = await garden.actions.getStatus({ log: garden.log.info() })
     const yamlStatus = yaml.safeDump(status, { noRefs: true, skipInvalid: true })
 
     // TODO: do a nicer print of this by default and add --yaml/--json options (maybe globally) for exporting

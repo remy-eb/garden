@@ -81,7 +81,8 @@ export interface ContextStatus {
 }
 
 export interface DeployServicesParams {
-  serviceNames?: string[],
+  log: LogEntry
+  serviceNames?: string[]
   force?: boolean
   forceBuild?: boolean
 }
@@ -119,11 +120,11 @@ export class ActionHelper implements TypeGuard {
    * run `garden init`
    */
   async prepareEnvironment(
-    { force = false, pluginName, logEntry, allowUserInput = false }:
-      { force?: boolean, pluginName?: string, logEntry?: LogEntry, allowUserInput?: boolean },
+    { force = false, pluginName, log, allowUserInput = false }:
+      { force?: boolean, pluginName?: string, log: LogEntry, allowUserInput?: boolean },
   ) {
     const handlers = this.garden.getActionHandlers("prepareEnvironment", pluginName)
-    const statuses = await this.getEnvironmentStatus({ pluginName })
+    const statuses = await this.getEnvironmentStatus({ pluginName, log })
 
     const needUserInput = Object.entries(statuses)
       .map(([name, status]) => ({ ...status, name }))
@@ -151,13 +152,13 @@ export class ActionHelper implements TypeGuard {
         continue
       }
 
-      const envLogEntry = (logEntry || this.garden.log).info({
+      const envLogEntry = (log || this.garden.log).info({
         status: "active",
         section: name,
         msg: "Preparing environment...",
       })
 
-      await handler({ ...this.commonParams(handler), force, status, logEntry: envLogEntry })
+      await handler({ ...this.commonParams(handler), force, status, log: envLogEntry })
 
       envLogEntry.setSuccess("Configured")
 
@@ -168,11 +169,11 @@ export class ActionHelper implements TypeGuard {
   }
 
   async cleanupEnvironment(
-    { pluginName }: ActionHelperParams<CleanupEnvironmentParams>,
+    { pluginName, log }: ActionHelperParams<CleanupEnvironmentParams>,
   ): Promise<EnvironmentStatusMap> {
     const handlers = this.garden.getActionHandlers("cleanupEnvironment", pluginName)
     await Bluebird.each(values(handlers), h => h({ ...this.commonParams(h) }))
-    return this.getEnvironmentStatus({ pluginName })
+    return this.getEnvironmentStatus({ pluginName, log })
   }
 
   async getSecret(params: RequirePluginName<ActionHelperParams<GetSecretParams>>): Promise<GetSecretResult> {
@@ -254,13 +255,13 @@ export class ActionHelper implements TypeGuard {
   }
 
   async deleteService(params: ServiceActionHelperParams<DeleteServiceParams>): Promise<ServiceStatus> {
-    const logEntry = this.garden.log.info({
+    const log = this.garden.log.info({
       section: params.service.name,
       msg: "Deleting...",
       status: "active",
     })
     return this.callServiceHandler({
-      params: { ...params, logEntry },
+      params: { ...params, log },
       actionType: "deleteService",
       defaultHandler: dummyDeleteServiceHandler,
     })
@@ -292,14 +293,14 @@ export class ActionHelper implements TypeGuard {
   //region Helper Methods
   //===========================================================================
 
-  async getStatus(): Promise<ContextStatus> {
-    const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({})
+  async getStatus({ log }: { log: LogEntry }): Promise<ContextStatus> {
+    const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({ log })
     const services = keyBy(await this.garden.getServices(), "name")
 
     const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
       const dependencies = await this.garden.getServices(service.config.dependencies)
       const runtimeContext = await prepareRuntimeContext(this.garden, service.module, dependencies)
-      return this.getServiceStatus({ service, runtimeContext })
+      return this.getServiceStatus({ service, runtimeContext, log })
     }))
 
     return {
@@ -309,7 +310,7 @@ export class ActionHelper implements TypeGuard {
   }
 
   async deployServices(
-    { serviceNames, force = false, forceBuild = false }: DeployServicesParams,
+    { serviceNames, force = false, forceBuild = false, log }: DeployServicesParams,
   ): Promise<ProcessResults> {
     const services = await this.garden.getServices(serviceNames)
 
@@ -319,6 +320,7 @@ export class ActionHelper implements TypeGuard {
       watch: false,
       handler: async (module) => getDeployTasks({
         garden: this.garden,
+        log,
         module,
         serviceNames,
         force,
@@ -331,11 +333,11 @@ export class ActionHelper implements TypeGuard {
   //endregion
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
-  private commonParams(handler, logEntry?: LogEntry): PluginActionParamsBase {
+  private commonParams(handler, log?: LogEntry): PluginActionParamsBase {
     return {
       ctx: createPluginContext(this.garden, handler["pluginName"]),
       // TODO: find a better way for handlers to log during execution
-      logEntry,
+      log: log || this.garden.log.info(),
     }
   }
 
@@ -410,8 +412,8 @@ export class ActionHelper implements TypeGuard {
   }
 }
 
-const dummyLogStreamer = async ({ service, logEntry }: GetServiceLogsParams) => {
-  logEntry && logEntry.warn({
+const dummyLogStreamer = async ({ service, log }: GetServiceLogsParams) => {
+  log.warn({
     section: service.name,
     msg: chalk.yellow(`No handler for log retrieval available for module type ${service.module.type}`),
   })
@@ -429,8 +431,8 @@ const dummyPublishHandler = async ({ module }) => {
   }
 }
 
-const dummyDeleteServiceHandler = async ({ module, logEntry }: DeleteServiceParams) => {
+const dummyDeleteServiceHandler = async ({ module, log }: DeleteServiceParams) => {
   const msg = `No delete service handler available for module type ${module.type}`
-  logEntry && logEntry.setError(msg)
+  log.setError(msg)
   return {}
 }

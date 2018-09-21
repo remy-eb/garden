@@ -58,7 +58,7 @@ export class DeployCommand extends Command<Args, Opts> {
   arguments = deployArgs
   options = deployOpts
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const services = await garden.getServices(args.service)
     const serviceNames = getNames(services)
 
@@ -70,7 +70,7 @@ export class DeployCommand extends Command<Args, Opts> {
     garden.log.header({ emoji: "rocket", command: "Deploy" })
 
     // TODO: make this a task
-    await garden.actions.prepareEnvironment({})
+    await garden.actions.prepareEnvironment({ log })
 
     const results = await processServices({
       garden,
@@ -78,6 +78,7 @@ export class DeployCommand extends Command<Args, Opts> {
       watch: opts.watch,
       handler: async (module) => getDeployTasks({
         garden,
+        log,
         module,
         serviceNames,
         force: opts.force,
@@ -86,6 +87,7 @@ export class DeployCommand extends Command<Args, Opts> {
       }),
       changeHandler: async (module) => getDeployTasks({
         garden,
+        log,
         module,
         serviceNames,
         force: true,

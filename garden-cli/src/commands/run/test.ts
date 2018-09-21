@@ -64,7 +64,7 @@ export class RunTestCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
     const testName = args.test
     const module = await garden.getModule(moduleName)
@@ -84,9 +84,9 @@ export class RunTestCommand extends Command<Args, Opts> {
       command: `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
     })
 
-    await garden.actions.prepareEnvironment({})
+    await garden.actions.prepareEnvironment({ log })
 
-    const buildTask = new BuildTask({ garden, module, force: opts["force-build"] })
+    const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
     await garden.addTask(buildTask)
     await garden.processTasks()
 
@@ -97,6 +97,7 @@ export class RunTestCommand extends Command<Args, Opts> {
     printRuntimeContext(garden, runtimeContext)
 
     const result = await garden.actions.testModule({
+      log,
       module,
       interactive,
       runtimeContext,

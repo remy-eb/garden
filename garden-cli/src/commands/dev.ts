@@ -44,14 +44,14 @@ export class DevCommand extends Command {
         garden dev
   `
 
-  async action({ garden }: CommandParams): Promise<CommandResult> {
+  async action({ garden, log }: CommandParams): Promise<CommandResult> {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
     console.log(data.toString())
 
     garden.log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
-    await garden.actions.prepareEnvironment({})
+    await garden.actions.prepareEnvironment({ log })
 
     const autoReloadDependants = await computeAutoReloadDependants(garden)
     const modules = await garden.getModules()
@@ -72,15 +72,15 @@ export class DevCommand extends Command {
           : [module]
 
         const testTasks: Task[] = flatten(await Bluebird.map(
-          testModules, m => getTestTasks({ garden, module: m })))
+          testModules, m => getTestTasks({ garden, log, module: m })))
 
         const deployTasks = await getDeployTasks({
-          garden, module, force: watch, forceBuild: watch, includeDependants: watch,
+          garden, log, module, force: watch, forceBuild: watch, includeDependants: watch,
         })
         const tasks = testTasks.concat(deployTasks)
 
         if (tasks.length === 0) {
-          return [new BuildTask({ garden, module, force: watch })]
+          return [new BuildTask({ garden, log, module, force: watch })]
         } else {
           return tasks
         }

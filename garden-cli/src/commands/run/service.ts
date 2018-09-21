@@ -50,7 +50,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
     const service = await garden.getService(serviceName)
     const module = service.module
@@ -60,9 +60,9 @@ export class RunServiceCommand extends Command<Args, Opts> {
       command: `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`,
     })
 
-    await garden.actions.prepareEnvironment({})
+    await garden.actions.prepareEnvironment({ log })
 
-    const buildTask = new BuildTask({ garden, module, force: opts["force-build"] })
+    const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
     await garden.addTask(buildTask)
     await garden.processTasks()
 
@@ -71,7 +71,13 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
     printRuntimeContext(garden, runtimeContext)
 
-    const result = await garden.actions.runService({ service, runtimeContext, silent: false, interactive: true })
+    const result = await garden.actions.runService({
+      log,
+      service,
+      runtimeContext,
+      silent: false,
+      interactive: true,
+    })
 
     return { result }
   }

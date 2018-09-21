@@ -49,12 +49,12 @@ export class CallCommand extends Command<Args> {
 
   arguments = callArgs
 
-  async action({ garden, args }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist
     const service = await garden.getService(serviceName)
-    const status = await garden.actions.getServiceStatus({ service })
+    const status = await garden.actions.getServiceStatus({ service, log })
 
     if (status.state !== "ready") {
       throw new RuntimeError(`Service ${service.name} is not running`, {

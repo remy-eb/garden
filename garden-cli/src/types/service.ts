@@ -209,7 +209,13 @@ export async function prepareRuntimeContext(
     }
     const depContext = deps[dep.name]
 
-    const outputs = { ...await garden.actions.getServiceOutputs({ service: dep }), ...dep.config.outputs }
+    const outputs = {
+      ...await garden.actions.getServiceOutputs({
+        log: garden.log.info(),
+        service: dep,
+      }),
+      ...dep.config.outputs,
+    }
     const serviceEnvName = getEnvVarName(dep.name)
 
     validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })

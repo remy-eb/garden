@@ -27,7 +27,7 @@ export interface DeployTaskParams {
   service: Service
   force: boolean
   forceBuild: boolean
-  logEntry?: LogEntry
+  log: LogEntry
 }
 
 export class DeployTask extends Task {
@@ -35,13 +35,12 @@ export class DeployTask extends Task {
 
   private service: Service
   private forceBuild: boolean
-  private logEntry?: LogEntry
 
-  constructor({ garden, service, force, forceBuild, logEntry }: DeployTaskParams) {
-    super({ garden, force, version: service.module.version })
+  constructor({ garden, service, force, forceBuild, log }: DeployTaskParams) {
+    super({ garden, log, force, version: service.module.version })
     this.service = service
     this.forceBuild = forceBuild
-    this.logEntry = logEntry
+    this.log = log
   }
 
   async getDependencies() {
@@ -51,6 +50,7 @@ export class DeployTask extends Task {
     const deps: Task[] = await Bluebird.map(services, async (service) => {
       return new DeployTask({
         garden: this.garden,
+        log: this.log,
         service,
         force: false,
         forceBuild: this.forceBuild,
@@ -59,6 +59,7 @@ export class DeployTask extends Task {
 
     deps.push(new PushTask({
       garden: this.garden,
+      log: this.log,
       module: this.service.module,
       forceBuild: this.forceBuild,
     }))
@@ -75,7 +76,7 @@ export class DeployTask extends Task {
   }
 
   async process(): Promise<ServiceStatus> {
-    const logEntry = (this.logEntry || this.garden.log).info({
+    const log = this.log.info({
       section: this.service.name,
       msg: "Checking status",
       status: "active",
@@ -83,7 +84,7 @@ export class DeployTask extends Task {
 
     // TODO: get version from build task results
     const { versionString } = await this.service.module.version
-    const status = await this.garden.actions.getServiceStatus({ service: this.service, logEntry })
+    const status = await this.garden.actions.getServiceStatus({ service: this.service, log })
 
     if (
       !this.force &&
@@ -91,14 +92,14 @@ export class DeployTask extends Task {
       status.state === "ready"
     ) {
       // already deployed and ready
-      logEntry.setSuccess({
+      log.setSuccess({
         msg: `Version ${versionString} already deployed`,
         append: true,
       })
       return status
     }
 
-    logEntry.setState("Deploying")
+    log.setState("Deploying")
 
     const dependencies = await this.garden.getServices(this.service.config.dependencies)
 
@@ -107,23 +108,23 @@ export class DeployTask extends Task {
       result = await this.garden.actions.deployService({
         service: this.service,
         runtimeContext: await prepareRuntimeContext(this.garden, this.service.module, dependencies),
-        logEntry,
+        log,
         force: this.force,
       })
     } catch (err) {
-      logEntry.setError()
+      log.setError()
       throw err
     }
 
-    logEntry.setSuccess({ msg: chalk.green(`Ready`), append: true })
+    log.setSuccess({ msg: chalk.green(`Ready`), append: true })
     return result
   }
 }
 
 export async function getDeployTasks(
-  { garden, module, serviceNames, force = false, forceBuild = false, includeDependants = false }:
+  { garden, log, module, serviceNames, force = false, forceBuild = false, includeDependants = false }:
     {
-      garden: Garden, module: Module, serviceNames?: string[] | null,
+      garden: Garden, log: LogEntry, module: Module, serviceNames?: string[] | null,
       force?: boolean, forceBuild?: boolean, includeDependants?: boolean,
     },
 ) {
@@ -140,5 +141,5 @@ export async function getDeployTasks(
     ? moduleServices.filter(s => serviceNames.includes(s.name))
     : moduleServices
 
-  return servicesToProcess.map(service => new DeployTask({ garden, service, force, forceBuild }))
+  return servicesToProcess.map(service => new DeployTask({ garden, log, service, force, forceBuild }))
 }

@@ -58,7 +58,7 @@ export class ExecCommand extends Command<Args> {
   options = runOpts
   loggerType = LoggerType.basic
 
-  async action({ garden, args }: CommandParams<Args>): Promise<CommandResult<ExecInServiceResult>> {
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
     const command = args.command || []
 
@@ -68,7 +68,7 @@ export class ExecCommand extends Command<Args> {
     })
 
     const service = await garden.getService(serviceName)
-    const result = await garden.actions.execInService({ service, command })
+    const result = await garden.actions.execInService({ log, service, command })
 
     return { result }
   }

@@ -64,9 +64,11 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
 
   arguments = deleteSecretArgs
 
-  async action({ garden, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
+  async action(
+    { garden, log, args }: CommandParams<DeleteSecretArgs>,
+  ): Promise<CommandResult<DeleteSecretResult>> {
     const key = args.key!
-    const result = await garden.actions.deleteSecret({ pluginName: args.provider!, key })
+    const result = await garden.actions.deleteSecret({ log, pluginName: args.provider!, key })
 
     if (result.found) {
       garden.log.info(`Deleted config key ${args.key}`)
@@ -91,11 +93,11 @@ export class DeleteEnvironmentCommand extends Command {
     resources.
   `
 
-  async action({ garden }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
+  async action({ garden, log }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
     const { name } = garden.environment
     garden.log.header({ emoji: "skull_and_crossbones", command: `Deleting ${name} environment` })
 
-    const result = await garden.actions.cleanupEnvironment({})
+    const result = await garden.actions.cleanupEnvironment({ log })
 
     garden.log.finish()
 
@@ -126,7 +128,7 @@ export class DeleteServiceCommand extends Command {
         garden delete service my-service # deletes my-service
   `
 
-  async action({ garden, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
+  async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
     const services = await garden.getServices(args.service)
 
     if (services.length === 0) {
@@ -139,7 +141,7 @@ export class DeleteServiceCommand extends Command {
     const result: { [key: string]: ServiceStatus } = {}
 
     await Bluebird.map(services, async service => {
-      result[service.name] = await garden.actions.deleteService({ service })
+      result[service.name] = await garden.actions.deleteService({ log, service })
     })
 
     garden.log.finish()

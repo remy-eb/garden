@@ -112,9 +112,9 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
   return {
     modules: [join(STATIC_DIR, "openfaas", "builder")],
     actions: {
-      async getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
+      async getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams) {
         const ofGarden = await getOpenFaasGarden(ctx)
-        const status = await ofGarden.actions.getStatus()
+        const status = await ofGarden.actions.getStatus({ log })
         const envReady = every(values(status.providers).map(s => s.ready))
         const servicesReady = every(values(status.services).map(s => s.state === "ready"))
 
@@ -124,13 +124,13 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         }
       },
 
-      async prepareEnvironment({ ctx, force }: PrepareEnvironmentParams) {
+      async prepareEnvironment({ ctx, force, log }: PrepareEnvironmentParams) {
         // TODO: refactor to dedupe similar code in local-kubernetes
         const ofGarden = await getOpenFaasGarden(ctx)
 
-        await ofGarden.actions.prepareEnvironment({ force })
+        await ofGarden.actions.prepareEnvironment({ force, log })
 
-        const results = await ofGarden.actions.deployServices({})
+        const results = await ofGarden.actions.deployServices({ log })
         const failed = values(results.taskResults).filter(r => !!r.error).length
 
         if (failed) {
@@ -208,7 +208,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         },
 
         async deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
-          const { ctx, module, service, logEntry, runtimeContext } = params
+          const { ctx, module, service, log, runtimeContext } = params
 
           // write the stack file again with environment variables
           await writeStackFile(ctx, module, runtimeContext.envVars)
@@ -228,14 +228,14 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
 
           const deployment = (await api.apps.readNamespacedDeployment(service.name, namespace)).body
 
-          await waitForObjects({ ctx, provider: k8sProvider, service, logEntry, objects: [deployment] })
+          await waitForObjects({ ctx, provider: k8sProvider, service, log, objects: [deployment] })
 
           // TODO: avoid duplicate work here
           return getServiceStatus(params)
         },
 
         async deleteService(params: DeleteServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
-          const { ctx, logEntry, service, runtimeContext } = params
+          const { ctx, log, service, runtimeContext } = params
           let status
           let found = true
 
@@ -243,6 +243,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
 
             status = await getServiceStatus({
               ctx,
+              log,
               service,
               runtimeContext,
               module: service.module,
@@ -261,8 +262,8 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
             found = false
           }
 
-          if (logEntry) {
-            found ? logEntry.setSuccess("Service deleted") : logEntry.setWarn("Service not deployed")
+          if (log) {
+            found ? log.setSuccess("Service deleted") : log.setWarn("Service not deployed")
           }
 
           return status

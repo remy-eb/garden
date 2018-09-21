@@ -135,7 +135,7 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
   getServiceStatus,
 
   async deployService(
-    { ctx, module, service, logEntry }: DeployServiceParams<HelmModule>,
+    { ctx, module, service, log }: DeployServiceParams<HelmModule>,
   ): Promise<ServiceStatus> {
     const provider = ctx.provider
     const chartPath = await getChartPath(module)
@@ -163,23 +163,23 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
     }
 
     const objects = await getChartObjects(ctx, service)
-    await waitForObjects({ ctx, provider, service, objects, logEntry })
+    await waitForObjects({ ctx, provider, service, objects, log })
 
     return {}
   },
 
   async deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
-    const { ctx, logEntry, service } = params
+    const { ctx, log, service } = params
     const namespace = await getAppNamespace(ctx, ctx.provider)
     const releaseName = getReleaseName(namespace, service)
     await helm(ctx.provider, "delete", "--purge", releaseName)
-    logEntry && logEntry.setSuccess("Service deleted")
+    log && log.setSuccess("Service deleted")
 
     return await getServiceStatus(params)
   },
 }
 
-async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
+async function build({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const buildPath = module.buildPath
   const config = module
 
@@ -195,13 +195,13 @@ async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): 
   if (config.spec.repo) {
     fetchArgs.push("--repo", config.spec.repo)
   }
-  logEntry && logEntry.setState("Fetching chart...")
   await helm(ctx.provider, ...fetchArgs)
+  log.setState("Fetching chart...")
 
   const chartPath = await getChartPath(module)
 
   // create the values.yml file (merge the configured parameters into the default values)
-  logEntry && logEntry.setState("Preparing chart...")
+  log && log.setState("Preparing chart...")
   const values = safeLoad(await helm(ctx.provider, "inspect", "values", chartPath)) || {}
 
   Object.entries(flattenValues(config.spec.parameters))
@@ -261,12 +261,12 @@ async function getChartObjects(ctx: PluginContext, service: Service) {
 }
 
 async function getServiceStatus(
-  { ctx, service, module, logEntry }: GetServiceStatusParams<HelmModule>,
+  { ctx, service, module, log }: GetServiceStatusParams<HelmModule>,
 ): Promise<ServiceStatus> {
   // need to build to be able to check the status
-  const buildStatus = await getGenericModuleBuildStatus({ ctx, module, logEntry })
+  const buildStatus = await getGenericModuleBuildStatus({ ctx, module, log })
   if (!buildStatus.ready) {
-    await build({ ctx, module, logEntry })
+    await build({ ctx, module, log })
   }
 
   // first check if the installed objects on the cluster match the current code
