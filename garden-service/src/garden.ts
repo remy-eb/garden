@@ -193,7 +193,7 @@ export class Garden {
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
     this.moduleActionHandlers = <ModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
 
-    this.taskGraph = new TaskGraph(this)
+    this.taskGraph = new TaskGraph(this.log.info())
     this.actions = new ActionHelper(this)
     this.hotReloadScheduler = new HotReloadScheduler()
   }
@@ -417,7 +417,7 @@ export class Garden {
       plugin = await factory({
         projectName: this.projectName,
         config,
-        logEntry: this.log,
+        log: this.log,
       })
     } catch (error) {
       throw new PluginError(`Unexpected error when loading plugin "${pluginName}": ${error}`, {
@@ -706,7 +706,7 @@ export class Garden {
       await this.detectCircularDependencies()
 
       const moduleConfigContext = new ModuleConfigContext(
-        this, this.environment, Object.values(this.moduleConfigs),
+        this, this.log.info(), this.environment, Object.values(this.moduleConfigs),
       )
       this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
     })
@@ -834,7 +834,7 @@ export class Garden {
       return linked.path
     }
 
-    const path = await this.vcs.ensureRemoteSource({ name, sourceType, url: repositoryUrl, logEntry: this.log })
+    const path = await this.vcs.ensureRemoteSource({ name, sourceType, url: repositoryUrl, log: this.log })
 
     return path
   }

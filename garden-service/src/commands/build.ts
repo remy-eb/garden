@@ -21,6 +21,7 @@ import { processModules } from "../process"
 import { computeAutoReloadDependants, withDependants } from "../watch"
 import { Module } from "../types/module"
 import { hotReloadAndLog } from "./helpers"
+import { logHeader } from "../logger/util"
 
 const buildArguments = {
   module: new StringsParameter({
@@ -56,7 +57,7 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
   options = buildOptions
 
   async action(
-    { args, opts, garden }: CommandParams<BuildArguments, BuildOptions>,
+    { args, opts, garden, log }: CommandParams<BuildArguments, BuildOptions>,
   ): Promise<CommandResult<TaskResults>> {
 
     await garden.clearBuilds()
@@ -65,25 +66,26 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
     const modules = await garden.getModules(args.module)
     const moduleNames = modules.map(m => m.name)
 
-    garden.log.header({ emoji: "hammer", command: "Build" })
+    logHeader({ log, emoji: "hammer", command: "Build" })
 
     const results = await processModules({
       garden,
+      log,
       modules,
       watch: opts.watch,
-      handler: async (module) => [new BuildTask({ garden, module, force: opts.force })],
+      handler: async (module) => [new BuildTask({ garden, log, module, force: opts.force })],
       changeHandler: async (module: Module) => {
 
         if (module.spec.hotReload) {
-          await hotReloadAndLog(garden, module)
+          await hotReloadAndLog(garden, log, module)
         }
 
         return (await withDependants(garden, [module], autoReloadDependants))
           .filter(m => moduleNames.includes(m.name))
-          .map(m => new BuildTask({ garden, module: m, force: true }))
+          .map(m => new BuildTask({ garden, log, module: m, force: true }))
       },
     })
 
-    return handleTaskResults(garden, "build", results)
+    return handleTaskResults(log, "build", results)
   }
 }

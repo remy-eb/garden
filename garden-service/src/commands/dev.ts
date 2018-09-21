@@ -63,28 +63,28 @@ export class DevCommand extends Command<Args, Opts> {
 
   options = devOpts
 
-  async action({ garden, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
+  async action({ garden, log, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
     console.log(data.toString())
 
-    garden.log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
+    log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
-    await garden.actions.prepareEnvironment({})
+    await garden.actions.prepareEnvironment({ log })
 
     const autoReloadDependants = await computeAutoReloadDependants(garden)
     const modules = await garden.getModules()
 
     if (modules.length === 0) {
-      garden.log.info({ msg: "No modules found in project." })
-      garden.log.info({ msg: "Aborting..." })
+      log.info({ msg: "No modules found in project." })
+      log.info({ msg: "Aborting..." })
       return {}
     }
 
     const hotReloadServiceNames = opts["hot-reload"] || []
     const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
 
-    if (opts["hot-reload"] && !validateHotReloadOpt(garden, hotReloadServiceNames)) {
+    if (opts["hot-reload"] && !validateHotReloadOpt(garden, log, hotReloadServiceNames)) {
       return {}
     }
 
@@ -97,7 +97,7 @@ export class DevCommand extends Command<Args, Opts> {
         const hotReload = hotReloadModuleNames.has(module.name)
 
         if (watch && hotReload) {
-          await hotReloadAndLog(garden, module)
+          await hotReloadAndLog(garden, log, module)
         }
 
         const testModules: Module[] = watch
@@ -105,14 +105,21 @@ export class DevCommand extends Command<Args, Opts> {
           : [module]
 
         const testTasks: Task[] = flatten(await Bluebird.map(
-          testModules, m => getTestTasks({ garden, module: m })))
+          testModules, m => getTestTasks({ garden, log, module: m })))
 
         let tasks
         if (watch && hotReload) {
-          tasks = testTasks.concat(await getTasksForHotReload({ garden, module, hotReloadServiceNames, serviceNames }))
+          tasks = testTasks.concat(await getTasksForHotReload({
+            garden,
+            log,
+            module,
+            hotReloadServiceNames,
+            serviceNames,
+          }))
         } else {
           tasks = testTasks.concat(await getDeployTasks({
             garden,
+            log,
             module,
             watch,
             serviceNames,
@@ -124,7 +131,7 @@ export class DevCommand extends Command<Args, Opts> {
         }
 
         if (tasks.length === 0) {
-          return [new BuildTask({ garden, module, force: watch })]
+          return [new BuildTask({ garden, log, module, force: watch })]
         } else {
           return tasks
         }
@@ -134,6 +141,7 @@ export class DevCommand extends Command<Args, Opts> {
 
     await processModules({
       garden,
+      log,
       modules,
       watch: true,
       handler: tasksForModule(false),

@@ -139,10 +139,11 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
         runModule,
 
         async runService(
-          { ctx, service, interactive, runtimeContext, silent, timeout, buildDependencies }: RunServiceParams,
+          { ctx, service, interactive, runtimeContext, silent, timeout, log, buildDependencies }: RunServiceParams,
         ) {
           return runModule({
             ctx,
+            log,
             module: service.module,
             command: [service.name],
             interactive,

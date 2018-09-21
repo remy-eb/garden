@@ -24,7 +24,7 @@ const toolsPath = join(globalGardenPath, "tools")
 
 interface ExecParams {
   cwd?: string
-  logEntry?: LogEntry
+  log: LogEntry
   args?: string[]
 }
 
@@ -97,13 +97,13 @@ export class BinaryCmd extends Cmd {
     this.defaultCwd = dirname(this.executablePath)
   }
 
-  private async download(logEntry?: LogEntry) {
+  private async download(log: LogEntry) {
     if (await pathExists(this.executablePath)) {
       return
     }
 
-    logEntry && logEntry.setState(`Fetching ${this.name}...`)
-    const debug = logEntry && logEntry.debug(`Downloading ${this.spec.url}...`)
+    log.setState(`Fetching ${this.name}...`)
+    const debug = log.debug(`Downloading ${this.spec.url}...`)
 
     const response = await Axios({
       method: "GET",
@@ -123,7 +123,7 @@ export class BinaryCmd extends Cmd {
     // return a promise and resolve when download finishes
     return new Promise((resolve, reject) => {
       response.data.on("error", (err) => {
-        logEntry && logEntry.setError(`Failed fetching ${this.spec.url}`)
+        log.setError(`Failed fetching ${this.spec.url}`)
         reject(err)
       })
 
@@ -148,7 +148,7 @@ export class BinaryCmd extends Cmd {
         response.data.pipe(extractor)
 
         extractor.on("error", (err) => {
-          logEntry && logEntry.setError(`Failed extracting ${format} archive ${this.spec.url}`)
+          log.setError(`Failed extracting ${format} archive ${this.spec.url}`)
           reject(err)
         })
       }
@@ -183,7 +183,7 @@ export class BinaryCmd extends Cmd {
             }
 
             debug && debug.setSuccess("Done")
-            logEntry && logEntry.setSuccess(`Fetched ${this.name}`)
+            log.setSuccess(`Fetched ${this.name}`)
             resolve()
           })
         })
@@ -191,8 +191,8 @@ export class BinaryCmd extends Cmd {
     })
   }
 
-  async exec({ cwd, args, logEntry }: ExecParams) {
-    await this.download(logEntry)
+  async exec({ cwd, args, log }: ExecParams) {
+    await this.download(log)
     return execa(this.executablePath, args || [], { cwd: cwd || this.defaultCwd })
   }
 

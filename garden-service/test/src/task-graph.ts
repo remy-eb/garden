@@ -34,6 +34,7 @@ class TestTask extends Task {
   ) {
     super({
       garden,
+      log: garden.log.info(),
       version: {
         versionString: "12345-6789",
         dirtyTimestamp: 6789,
@@ -90,7 +91,7 @@ describe("task-graph", () => {
 
     it("should successfully process a single task without dependencies", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden)
+      const graph = new TaskGraph(garden.log.info())
       const task = new TestTask(garden, "a")
 
       await graph.addTask(task)
@@ -113,7 +114,7 @@ describe("task-graph", () => {
 
     it("should process multiple tasks in dependency order", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden)
+      const graph = new TaskGraph(garden.log.info())
 
       const callbackResults = {}
       const resultOrder: string[] = []
@@ -205,7 +206,7 @@ describe("task-graph", () => {
 
     it("should recursively cancel a task's dependants when it throws an error", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden)
+      const graph = new TaskGraph(garden.log.info())
 
       const resultOrder: string[] = []
 
@@ -246,7 +247,7 @@ describe("task-graph", () => {
       "should process a task as an inheritor of an existing, in-progress task when they have the same base key",
       async () => {
         const garden = await getGarden()
-        const graph = new TaskGraph(garden)
+        const graph = new TaskGraph(garden.log.info())
 
         let callbackResults = {}
         let resultOrder: string[] = []

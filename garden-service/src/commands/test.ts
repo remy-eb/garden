@@ -22,6 +22,7 @@ import { processModules } from "../process"
 import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { computeAutoReloadDependants, withDependants } from "../watch"
+import { logHeader } from "../logger/util"
 
 const testArgs = {
   module: new StringsParameter({
@@ -66,7 +67,7 @@ export class TestCommand extends Command<Args, Opts> {
   arguments = testArgs
   options = testOpts
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const autoReloadDependants = await computeAutoReloadDependants(garden)
     let modules: Module[]
     if (args.module) {
@@ -76,12 +77,13 @@ export class TestCommand extends Command<Args, Opts> {
       modules = await garden.getModules()
     }
 
-    garden.log.header({
+    logHeader({
+      log,
       emoji: "thermometer",
       command: `Running tests`,
     })
 
-    await garden.actions.prepareEnvironment({})
+    await garden.actions.prepareEnvironment({ log })
 
     const name = opts.name
     const force = opts.force
@@ -89,17 +91,18 @@ export class TestCommand extends Command<Args, Opts> {
 
     const results = await processModules({
       garden,
+      log,
       modules,
       watch: opts.watch,
-      handler: async (module) => getTestTasks({ garden, module, name, force, forceBuild }),
+      handler: async (module) => getTestTasks({ garden, log, module, name, force, forceBuild }),
       changeHandler: async (module) => {
         const modulesToProcess = await withDependants(garden, [module], autoReloadDependants)
         return flatten(await Bluebird.map(
           modulesToProcess,
-          m => getTestTasks({ garden, module: m, name, force, forceBuild })))
+          m => getTestTasks({ garden, log, module: m, name, force, forceBuild })))
       },
     })
 
-    return handleTaskResults(garden, "test", results)
+    return handleTaskResults(log, "test", results)
   }
 }

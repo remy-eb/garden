@@ -10,11 +10,13 @@ import { TaskResults } from "../task-graph"
 import { ModuleVersion } from "../vcs/base"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
 
 export class TaskDefinitionError extends Error { }
 
 export interface TaskParams {
   garden: Garden
+  log: LogEntry
   force?: boolean
   version: ModuleVersion
 }
@@ -22,6 +24,7 @@ export interface TaskParams {
 export abstract class Task {
   abstract type: string
   garden: Garden
+  log: LogEntry
   id: string
   force: boolean
   version: ModuleVersion
@@ -34,6 +37,7 @@ export abstract class Task {
     this.id = uuidv1() // uuidv1 is timestamp-based
     this.force = !!initArgs.force
     this.version = initArgs.version
+    this.log = initArgs.log
   }
 
   async getDependencies(): Promise<Task[]> {

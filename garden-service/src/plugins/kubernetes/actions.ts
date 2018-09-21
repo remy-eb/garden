@@ -73,12 +73,12 @@ export async function validate(params: ValidateModuleParams<ContainerModule>) {
 }
 
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
-  const { ctx, logEntry, service } = params
+  const { ctx, log, service } = params
   const namespace = await getAppNamespace(ctx, ctx.provider)
   const provider = ctx.provider
 
   await deleteContainerService(
-    { provider, namespace, serviceName: service.name, logEntry })
+    { provider, namespace, serviceName: service.name, log })
 
   return getContainerServiceStatus(params)
 }
@@ -135,13 +135,13 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
 }
 
 export async function hotReload(
-  { ctx, runtimeContext, module, buildDependencies }: HotReloadParams<ContainerModule>,
+  { ctx, log, runtimeContext, module, buildDependencies }: HotReloadParams<ContainerModule>,
 ): Promise<HotReloadResult> {
   const hotReloadConfig = module.spec.hotReload!
 
   const services = module.services
 
-  if (!await waitForServices(ctx, runtimeContext, services, buildDependencies)) {
+  if (!await waitForServices(ctx, log, runtimeContext, services, buildDependencies)) {
     // Service deployment timed out, skip hot reload
     return {}
   }
@@ -222,7 +222,7 @@ export async function runModule(
 }
 
 export async function runService(
-  { ctx, service, interactive, runtimeContext, silent, timeout, logEntry, buildDependencies }:
+  { ctx, service, interactive, runtimeContext, silent, timeout, log, buildDependencies }:
     RunServiceParams<ContainerModule>,
 ) {
   return runModule({
@@ -233,13 +233,13 @@ export async function runService(
     runtimeContext,
     silent,
     timeout,
-    logEntry,
+    log,
     buildDependencies,
   })
 }
 
 export async function testModule(
-  { ctx, interactive, module, runtimeContext, silent, testConfig, logEntry, buildDependencies }:
+  { ctx, interactive, module, runtimeContext, silent, testConfig, log, buildDependencies }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
@@ -255,7 +255,7 @@ export async function testModule(
     runtimeContext,
     silent,
     timeout,
-    logEntry,
+    log,
     buildDependencies,
   })
 

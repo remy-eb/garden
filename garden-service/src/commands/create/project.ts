@@ -86,7 +86,7 @@ export class CreateProjectCommand extends Command<Args, Opts> {
   arguments = createProjectArguments
   options = createProjectOptions
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CreateProjectResult> {
+  async action({ garden, args, opts, log }: CommandParams<Args, Opts>): Promise<CreateProjectResult> {
     let moduleConfigs: ModuleConfigOpts[] = []
     let errors: GardenBaseError[] = []
 
@@ -100,11 +100,10 @@ export class CreateProjectCommand extends Command<Args, Opts> {
 
     await ensureDir(projectRoot)
 
-    garden.log.header({ emoji: "house_with_garden", command: "create" })
-    garden.log.info(`Initializing new Garden project ${projectName}`)
-    garden.log.info("---------")
+    log.info(`Initializing new Garden project ${projectName}`)
+    log.info("---------")
     // Stop logger while prompting
-    garden.log.stop()
+    log.stop()
 
     if (moduleParentDirs.length > 0) {
       // If module-dirs option provided we scan for modules in the parent dir(s) and add them one by one
@@ -127,13 +126,13 @@ export class CreateProjectCommand extends Command<Args, Opts> {
         .map(({ name, type }) => prepareNewModuleConfig(name, type, join(projectRoot, name)))
     }
 
-    garden.log.info("---------")
-    const taskLog = garden.log.info({ msg: "Setting up project", status: "active" })
+    log.info("---------")
+    const taskLog = log.info({ msg: "Setting up project", status: "active" })
 
     for (const module of moduleConfigs) {
       await ensureDir(module.path)
       try {
-        await dumpConfig(module, moduleSchema, garden.log)
+        await dumpConfig(module, moduleSchema, log)
       } catch (err) {
         errors.push(err)
       }
@@ -146,7 +145,7 @@ export class CreateProjectCommand extends Command<Args, Opts> {
     }
 
     try {
-      await dumpConfig(projectConfig, projectSchema, garden.log)
+      await dumpConfig(projectConfig, projectSchema, log)
     } catch (err) {
       errors.push(err)
     }
@@ -158,7 +157,7 @@ export class CreateProjectCommand extends Command<Args, Opts> {
     }
 
     const docs = terminalLink("docs", "https://docs.garden.io")
-    garden.log.info(`Project created! Be sure to check out our ${docs} for how to get sarted!`)
+    log.info(`Project created! Be sure to check out our ${docs} for how to get sarted!`)
 
     return {
       result: {

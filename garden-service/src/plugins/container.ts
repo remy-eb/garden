@@ -552,11 +552,11 @@ export const gardenPlugin = (): GardenPlugin => ({
     container: {
       validate: validateContainerModule,
 
-      async getBuildStatus({ module, logEntry }: GetBuildStatusParams<ContainerModule>) {
+      async getBuildStatus({ module, log }: GetBuildStatusParams<ContainerModule>) {
         const identifier = await helpers.imageExistsLocally(module)
 
         if (identifier) {
-          logEntry && logEntry.debug({
+          log.debug({
             section: module.name,
             msg: `Image ${identifier} already exists`,
             symbol: "info",
@@ -566,7 +566,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { ready: !!identifier }
       },
 
-      async build({ module, logEntry }: BuildModuleParams<ContainerModule>) {
+      async build({ module, log }: BuildModuleParams<ContainerModule>) {
         const buildPath = module.buildPath
         const image = module.spec.image
 
@@ -574,7 +574,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           if (await helpers.imageExistsLocally(module)) {
             return { fresh: false }
           }
-          logEntry && logEntry.setState(`Pulling image ${image}...`)
+          log.setState(`Pulling image ${image}...`)
           await helpers.pullImage(module)
           return { fetched: true }
         }
@@ -582,7 +582,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const identifier = await helpers.getLocalImageId(module)
 
         // build doesn't exist, so we create it
-        logEntry && logEntry.setState(`Building ${identifier}...`)
+        log.setState(`Building ${identifier}...`)
 
         const cmdOpts = ["build", "-t", identifier]
         const buildArgs = Object.entries(module.spec.buildArgs).map(([key, value]) => {
@@ -605,16 +605,16 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { fresh: true, details: { identifier } }
       },
 
-      async publishModule({ module, logEntry }: PublishModuleParams<ContainerModule>) {
+      async publishModule({ module, log }: PublishModuleParams<ContainerModule>) {
         if (!(await helpers.hasDockerfile(module))) {
-          logEntry && logEntry.setState({ msg: `Nothing to publish` })
+          log.setState({ msg: `Nothing to publish` })
           return { published: false }
         }
 
         const localId = await helpers.getLocalImageId(module)
         const remoteId = await helpers.getPublicImageId(module)
 
-        logEntry && logEntry.setState({ msg: `Publishing image ${remoteId}...` })
+        log.setState({ msg: `Publishing image ${remoteId}...` })
 
         if (localId !== remoteId) {
           await helpers.dockerCli(module, ["tag", localId, remoteId])

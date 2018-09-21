@@ -55,6 +55,7 @@ export class CreateModuleCommand extends Command<Args, Opts> {
   name = "module"
   alias = "m"
   help = "Creates a new Garden module."
+  header = { emoji: "house_with_garden", command: "create" }
 
   description = dedent`
     Creates a new Garden module of the given type
@@ -71,7 +72,7 @@ export class CreateModuleCommand extends Command<Args, Opts> {
   arguments = createModuleArguments
   options = createModuleOptions
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CreateModuleResult> {
+  async action({ garden, args, opts, log }: CommandParams<Args, Opts>): Promise<CreateModuleResult> {
     let errors: GardenBaseError[] = []
 
     const moduleRoot = join(garden.projectRoot, (args["module-dir"] || "").trim())
@@ -83,8 +84,7 @@ export class CreateModuleCommand extends Command<Args, Opts> {
 
     await ensureDir(moduleRoot)
 
-    garden.log.header({ emoji: "house_with_garden", command: "create" })
-    garden.log.info(`Initializing new module ${moduleName}`)
+    log.info(`Initializing new module ${moduleName}`)
 
     let type: ModuleType
 
@@ -96,10 +96,10 @@ export class CreateModuleCommand extends Command<Args, Opts> {
       }
     } else {
       // Prompt for type
-      garden.log.info("---------")
-      garden.log.stop()
+      log.info("---------")
+      log.stop()
       type = (await prompts.addConfigForModule(moduleName)).type
-      garden.log.info("---------")
+      log.info("---------")
       if (!type) {
         return { result: {} }
       }
@@ -107,7 +107,7 @@ export class CreateModuleCommand extends Command<Args, Opts> {
 
     const module = prepareNewModuleConfig(moduleName, type, moduleRoot)
     try {
-      await dumpConfig(module, moduleSchema, garden.log)
+      await dumpConfig(module, moduleSchema, log)
     } catch (err) {
       errors.push(err)
     }

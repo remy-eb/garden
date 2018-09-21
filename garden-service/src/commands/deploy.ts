@@ -20,6 +20,7 @@ import { getDeployTasks, getTasksForHotReload, getHotReloadModuleNames } from ".
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
 import { getNames } from "../util/util"
+import { logHeader } from "../logger/util"
 
 const deployArgs = {
   service: new StringsParameter({
@@ -67,12 +68,12 @@ export class DeployCommand extends Command<Args, Opts> {
   arguments = deployArgs
   options = deployOpts
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const services = await garden.getServices(args.service)
     const serviceNames = getNames(services)
 
     if (services.length === 0) {
-      garden.log.error({ msg: "No services found. Aborting." })
+      log.error({ msg: "No services found. Aborting." })
       return { result: {} }
     }
 
@@ -81,7 +82,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
 
     if (opts["hot-reload"]) {
-      if (!validateHotReloadOpt(garden, hotReloadServiceNames)) {
+      if (!validateHotReloadOpt(garden, log, hotReloadServiceNames)) {
         return { result: {} }
       }
       watch = true
@@ -89,17 +90,19 @@ export class DeployCommand extends Command<Args, Opts> {
       watch = opts.watch
     }
 
-    garden.log.header({ emoji: "rocket", command: "Deploy" })
+    logHeader({ log, emoji: "rocket", command: "Deploy" })
 
     // TODO: make this a task
-    await garden.actions.prepareEnvironment({})
+    await garden.actions.prepareEnvironment({ log })
 
     const results = await processServices({
       garden,
+      log,
       services,
       watch,
       handler: async (module) => getDeployTasks({
         garden,
+        log,
         module,
         serviceNames,
         watch,
@@ -109,16 +112,16 @@ export class DeployCommand extends Command<Args, Opts> {
       }),
       changeHandler: async (module) => {
         if (hotReloadModuleNames.has(module.name)) {
-          await hotReloadAndLog(garden, module)
-          return getTasksForHotReload({ garden, module, hotReloadServiceNames, serviceNames })
+          await hotReloadAndLog(garden, log, module)
+          return getTasksForHotReload({ garden, log, module, hotReloadServiceNames, serviceNames })
         } else {
           return getDeployTasks({
-            garden, module, serviceNames, hotReloadServiceNames, force: true, forceBuild: true, watch: true,
+            garden, log, module, serviceNames, hotReloadServiceNames, force: true, forceBuild: true, watch: true,
           })
         }
       },
     })
 
-    return handleTaskResults(garden, "deploy", results)
+    return handleTaskResults(log, "deploy", results)
   }
 }
