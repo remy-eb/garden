@@ -21,6 +21,7 @@ export type EntryStatus = "active" | "done" | "error" | "success" | "warn"
 
 export interface UpdateOpts {
   msg?: string | string[]
+  indendationLevel?: number
   section?: string
   emoji?: EmojiName
   symbol?: LogSymbol
@@ -29,6 +30,8 @@ export interface UpdateOpts {
   showDuration?: boolean
   error?: GardenError
   status?: EntryStatus
+  // dedent?: boolean
+  // dedentChildren?: boolean
 }
 
 export interface CreateOpts extends UpdateOpts {
@@ -40,7 +43,6 @@ export type CreateParam = string | CreateOpts
 export interface LogEntryConstructor {
   level: LogLevel
   opts: CreateOpts
-  depth: number
   parent: LogNode
 }
 
@@ -49,22 +51,28 @@ export function createLogEntry(level: LogLevel, parent: LogNode, opts: CreateOpt
     level,
     opts,
     parent,
-    depth: parent.depth + 1,
   }
   return new LogEntry(params)
 }
 
 // TODO Fix any cast
 export function resolveParam<T extends UpdateOpts>(param?: string | T): T {
-  return typeof param === "string" ? <any>{ msg: param } : param || {}
+  if (typeof param === "undefined") {
+    // TODO
+    return <any>{ indendationLevel: -2 }
+  }
+  if (typeof param === "string") {
+    return <any>{ msg: param }
+  }
+  return param
 }
 
 export class LogEntry extends LogNode {
   public opts: UpdateOpts
 
-  constructor({ level, opts, depth, parent }: LogEntryConstructor) {
+  constructor({ level, opts, parent }: LogEntryConstructor) {
     const { id, ...otherOpts } = opts
-    super(level, depth, parent, id)
+    super(level, parent, id)
     this.opts = otherOpts
     if (this.level === LogLevel.error) {
       this.opts.status = "error"
@@ -110,7 +118,11 @@ export class LogEntry extends LogNode {
   }
 
   createNode(level: LogLevel, parent: LogNode, param?: CreateParam) {
-    return createLogEntry(level, parent, resolveParam(param))
+    const opts = {
+      ...resolveParam(param),
+      indendationLevel: (this.opts.indendationLevel || 0) + 1,
+    }
+    return createLogEntry(level, parent, opts)
   }
 
   setState(param?: string | UpdateOpts): LogEntry {

@@ -12,6 +12,7 @@ import {
   CommandResult,
 } from "./base"
 import dedent = require("dedent")
+// import { sleep } from "../util/util"
 
 export class ValidateCommand extends Command {
   name = "validate"
@@ -21,10 +22,27 @@ export class ValidateCommand extends Command {
     Throws an error and exits with code 1 if something's not right in your garden.yml files.
   `
 
-  async action({ garden }: CommandParams): Promise<CommandResult> {
-    garden.log.header({ emoji: "heavy_check_mark", command: "validate" })
+  async action({ garden, log }: CommandParams): Promise<CommandResult> {
+    garden.log.commandHeader({ emoji: "heavy_check_mark", command: "validate" })
 
-    await garden.getModules()
+    log.setDone({ msg: "foobar", section: "hey" })
+    const i = log.info("foobar2")
+    i.info("foobar3")
+    garden.log.info("foobar4")
+    garden.log.info("foobar5")
+
+    log.info({section: "section", msg: "section test"})
+
+    // await sleep(1500)
+    // // garden.log.footer.info("This goes to the footer section!")
+    // await sleep(1500)
+    // // garden.log.mainBottom.info("This goes to the main bottom section")
+    // await sleep(1500)
+    // const main = garden.log.info("This goes to the main top section!")
+    // main.info("nested main")
+    // await sleep(1500)
+
+    // await garden.getModules()
 
     return {}
   }

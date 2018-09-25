@@ -100,7 +100,7 @@ export class CreateProjectCommand extends Command<Args, Opts> {
 
     await ensureDir(projectRoot)
 
-    garden.log.header({ emoji: "house_with_garden", command: "create" })
+    garden.log.commandHeader({ emoji: "house_with_garden", command: "create" })
     garden.log.info(`Initializing new Garden project ${projectName}`)
     garden.log.info("---------")
     // Stop logger while prompting

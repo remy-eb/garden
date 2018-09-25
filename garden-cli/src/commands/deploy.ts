@@ -67,7 +67,7 @@ export class DeployCommand extends Command<Args, Opts> {
       return { result: {} }
     }
 
-    garden.log.header({ emoji: "rocket", command: "Deploy" })
+    garden.log.commandHeader({ emoji: "rocket", command: "Deploy" })
 
     // TODO: make this a task
     await garden.actions.prepareEnvironment({ log })

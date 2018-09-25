@@ -34,7 +34,7 @@ export class UpdateRemoteAllCommand extends Command {
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
 
-    garden.log.header({ emoji: "hammer_and_wrench", command: "update-remote all" })
+    garden.log.commandHeader({ emoji: "hammer_and_wrench", command: "update-remote all" })
 
     const sourcesCmd = new UpdateRemoteSourcesCommand()
     const modulesCmd = new UpdateRemoteModulesCommand()

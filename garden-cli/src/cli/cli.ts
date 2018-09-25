@@ -232,6 +232,7 @@ export class GardenCli {
           contextOpts.config = MOCK_CONFIG
         }
         garden = await Garden.factory(root, contextOpts)
+        garden.log.commandHeader({ emoji: "heavy_check_mark", command: command.name })
         const log = garden.log.info()
         // TODO: enforce that commands always output DeepPrimitiveMap
         result = await command.action({

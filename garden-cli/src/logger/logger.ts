@@ -10,7 +10,7 @@ import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
 
 import { RootLogNode, LogNode } from "./log-node"
-import { LogEntry, CreateOpts, createLogEntry, resolveParam } from "./log-entry"
+import { LogEntry, CreateOpts, createLogEntry, resolveParam, CreateParam } from "./log-entry"
 import { getChildEntries } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
@@ -18,8 +18,6 @@ import { LogLevel } from "./log-node"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
 import { combine } from "./renderers"
-
-const ROOT_DEPTH = -1
 
 export enum LoggerType {
   quiet = "quiet",
@@ -52,6 +50,8 @@ export interface LoggerConfig {
 export class Logger extends RootLogNode<LogEntry> {
   public writers: Writer[]
 
+  private _headerSection: LogEntry
+  private _mainSection: LogEntry
   private static instance: Logger
 
   static getInstance() {
@@ -90,8 +90,42 @@ export class Logger extends RootLogNode<LogEntry> {
   }
 
   private constructor(config: LoggerConfig) {
-    super(config.level, ROOT_DEPTH)
+    super(config.level)
     this.writers = config.writers || []
+    this._headerSection = super.addEmptyNode()
+    this._mainSection = super.addEmptyNode()
+  }
+
+  get headerSection() {
+    return this._headerSection
+  }
+
+  get mainSection() {
+    return this._mainSection
+  }
+
+  silly(param?: CreateParam): LogEntry {
+    return this.mainSection.silly(param)
+  }
+
+  debug(param?: CreateParam): LogEntry {
+    return this.mainSection.debug(param)
+  }
+
+  verbose(param?: CreateParam): LogEntry {
+    return this.mainSection.verbose(param)
+  }
+
+  info(param?: CreateParam): LogEntry {
+    return this._mainSection.info(param)
+  }
+
+  warn(param?: CreateParam): LogEntry {
+    return this.mainSection.warn(param)
+  }
+
+  error(param?: CreateParam): LogEntry {
+    return this.mainSection.error(param)
   }
 
   createNode(level: LogLevel, _parent: LogNode, opts: CreateOpts) {
@@ -110,7 +144,7 @@ export class Logger extends RootLogNode<LogEntry> {
     return getChildEntries(this).filter(entry => entry.opts.section === section)
   }
 
-  header(
+  commandHeader(
     { command, emoji, level = LogLevel.info }: { command: string, emoji?: string, level?: LogLevel },
   ): LogEntry {
     const msg = combine([
@@ -119,7 +153,7 @@ export class Logger extends RootLogNode<LogEntry> {
       ["\n"],
     ])
     const lvlStr = LogLevel[level]
-    return this[lvlStr](msg)
+    return this.headerSection[lvlStr](msg)
   }
 
   finish(

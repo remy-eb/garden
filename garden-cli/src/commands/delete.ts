@@ -95,7 +95,7 @@ export class DeleteEnvironmentCommand extends Command {
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
     const { name } = garden.environment
-    garden.log.header({ emoji: "skull_and_crossbones", command: `Deleting ${name} environment` })
+    garden.log.commandHeader({ emoji: "skull_and_crossbones", command: `Deleting ${name} environment` })
 
     const result = await garden.actions.cleanupEnvironment({ log })
 
@@ -136,7 +136,7 @@ export class DeleteServiceCommand extends Command {
       return { result: {} }
     }
 
-    garden.log.header({ emoji: "skull_and_crossbones", command: `Delete service` })
+    garden.log.commandHeader({ emoji: "skull_and_crossbones", command: `Delete service` })
 
     const result: { [key: string]: ServiceStatus } = {}
 

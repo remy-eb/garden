@@ -247,7 +247,8 @@ export async function handleTaskResults(
 
   garden.log.info("")
   if (!results.restartRequired) {
-    garden.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+    // TODO
+    garden.log.info({ emoji: "heavy_check_mark", msg: `Done!` })
   }
   return {
     result: results.taskResults,

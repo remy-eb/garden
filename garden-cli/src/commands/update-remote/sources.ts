@@ -45,7 +45,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
   async action(
     { garden, args }: CommandParams<Args>,
   ): Promise<CommandResult<SourceConfig[]>> {
-    garden.log.header({ emoji: "hammer_and_wrench", command: "update-remote sources" })
+    garden.log.commandHeader({ emoji: "hammer_and_wrench", command: "update-remote sources" })
 
     const { source } = args
 

@@ -304,7 +304,7 @@ export class ModuleConfigContext extends ProjectConfigContext {
         const service = await garden.getService(name)
         const outputs = {
           ...service.config.outputs,
-          ...await garden.actions.getServiceOutputs({ service }),
+          ...await garden.actions.getServiceOutputs({ service, log: garden.log.info() }),
         }
         return new ServiceContext(_this, service, outputs)
       }],

@@ -62,7 +62,7 @@ export class ExecCommand extends Command<Args> {
     const serviceName = args.service
     const command = args.command || []
 
-    garden.log.header({
+    garden.log.commandHeader({
       emoji: "runner",
       command: `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(serviceName)}`,
     })

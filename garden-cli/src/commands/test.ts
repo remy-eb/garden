@@ -78,7 +78,7 @@ export class TestCommand extends Command<Args, Opts> {
       modules = await garden.getModules()
     }
 
-    garden.log.header({
+    garden.log.commandHeader({
       emoji: "thermometer",
       command: `Running tests`,
     })

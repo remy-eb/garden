@@ -47,7 +47,7 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
   async action(
     { garden, args }: CommandParams<Args>,
   ): Promise<CommandResult<SourceConfig[]>> {
-    garden.log.header({ emoji: "hammer_and_wrench", command: "update-remote modules" })
+    garden.log.commandHeader({ emoji: "hammer_and_wrench", command: "update-remote modules" })
 
     const { module } = args
     const modules = await garden.getModules(module)

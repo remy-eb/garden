@@ -64,7 +64,7 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
     const modules = await garden.getModules(args.module)
     const moduleNames = modules.map(m => m.name)
 
-    garden.log.header({ emoji: "hammer", command: "Build" })
+    garden.log.commandHeader({ emoji: "hammer", command: "Build" })
 
     const results = await processModules({
       garden,

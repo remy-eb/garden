@@ -50,7 +50,7 @@ export class LinkSourceCommand extends Command<Args> {
   `
 
   async action({ garden, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
-    garden.log.header({ emoji: "link", command: "link source" })
+    garden.log.commandHeader({ emoji: "link", command: "link source" })
 
     const sourceType = "project"
 

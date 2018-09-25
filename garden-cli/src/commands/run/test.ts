@@ -79,7 +79,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       })
     }
 
-    garden.log.header({
+    garden.log.commandHeader({
       emoji: "runner",
       command: `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
     })

@@ -54,7 +54,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
   `
 
   async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
-    garden.log.header({ emoji: "chains", command: "unlink module" })
+    garden.log.commandHeader({ emoji: "chains", command: "unlink module" })
 
     const sourceType = "module"
 

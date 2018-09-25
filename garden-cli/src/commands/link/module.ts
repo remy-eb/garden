@@ -55,7 +55,7 @@ export class LinkModuleCommand extends Command<Args> {
   `
 
   async action({ garden, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
-    garden.log.header({ emoji: "link", command: "link module" })
+    garden.log.commandHeader({ emoji: "link", command: "link module" })
 
     const sourceType = "module"
 

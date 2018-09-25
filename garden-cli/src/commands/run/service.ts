@@ -55,7 +55,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
     const service = await garden.getService(serviceName)
     const module = service.module
 
-    garden.log.header({
+    garden.log.commandHeader({
       emoji: "runner",
       command: `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`,
     })

@@ -83,7 +83,7 @@ export class CreateModuleCommand extends Command<Args, Opts> {
 
     await ensureDir(moduleRoot)
 
-    garden.log.header({ emoji: "house_with_garden", command: "create" })
+    garden.log.commandHeader({ emoji: "house_with_garden", command: "create" })
     garden.log.info(`Initializing new module ${moduleName}`)
 
     let type: ModuleType

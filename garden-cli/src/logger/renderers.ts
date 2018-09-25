@@ -32,7 +32,7 @@ export type Renderers = Renderer[]
 
 /*** STYLE HELPERS ***/
 
-const SECTION_PREFIX_WIDTH = 25
+const SECTION_PREFIX_WIDTH = 20
 const cliPadEnd = (s: string, width: number): string => {
   const diff = width - stringWidth(s)
   return diff <= 0 ? s : s + repeat(" ", diff)
@@ -65,7 +65,7 @@ export function combine(renderers: Renderers): string {
 
 /*** RENDERERS ***/
 export function leftPad(entry: LogEntry): string {
-  return padStart("", entry.depth * 3)
+  return padStart("", (entry.opts.indendationLevel || 0) * 3)
 }
 
 export function renderEmoji(entry: LogEntry): string {
@@ -130,18 +130,19 @@ export function renderDuration(entry: LogEntry): string {
 
 export function formatForTerminal(entry: LogEntry): string {
   let renderers
-  if (entry.depth > 0) {
-    // Skip section on child entries.
+  // if (entry.depth > 0) {
+  //   // Skip section on child entries.
+  //   renderers = [
+  //     [leftPad, [entry]],
+  //     [renderSymbol, [entry]],
+  //     [renderEmoji, [entry]],
+  //     [renderMsg, [entry]],
+  //     [renderDuration, [entry]],
+  //     ["\n"],
+  //   ]
+  // } else {
     renderers = [
       [leftPad, [entry]],
-      [renderSymbol, [entry]],
-      [renderEmoji, [entry]],
-      [renderMsg, [entry]],
-      [renderDuration, [entry]],
-      ["\n"],
-    ]
-  } else {
-    renderers = [
       [renderSymbol, [entry]],
       [renderSection, [entry]],
       [renderEmoji, [entry]],
@@ -149,6 +150,6 @@ export function formatForTerminal(entry: LogEntry): string {
       [renderDuration, [entry]],
       ["\n"],
     ]
-  }
+  // }
   return combine(renderers)
 }

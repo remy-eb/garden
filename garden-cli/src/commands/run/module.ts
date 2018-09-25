@@ -75,7 +75,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
       ? `Running command ${chalk.white(args.command.join(" "))} in module ${chalk.white(moduleName)}`
       : `Running module ${chalk.white(moduleName)}`
 
-    garden.log.header({
+    garden.log.commandHeader({
       emoji: "runner",
       command: msg,
     })

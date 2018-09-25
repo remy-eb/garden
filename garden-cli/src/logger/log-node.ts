@@ -29,8 +29,7 @@ export abstract class LogNode<T = LogEntry, U = CreateParam> {
 
   constructor(
     public readonly level: LogLevel,
-    public readonly depth: number,
-    public readonly parent?: LogNode<T>,
+    public readonly parent?: LogNode<T, U>,
     public readonly id?: string,
   ) {
     if (this instanceof RootLogNode) {
@@ -51,6 +50,10 @@ export abstract class LogNode<T = LogEntry, U = CreateParam> {
     this.children.push(node)
     this.root.onGraphChange(node)
     return node
+  }
+
+  protected addEmptyNode(): T {
+    return this.addNode(LogLevel.info)
   }
 
   silly(param?: U): T {

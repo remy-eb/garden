@@ -61,7 +61,7 @@ export class PublishCommand extends Command<Args, Opts> {
   options = publishOpts
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    garden.log.header({ emoji: "rocket", command: "Publish modules" })
+    garden.log.commandHeader({ emoji: "rocket", command: "Publish modules" })
 
     const modules = await garden.getModules(args.module)
 
