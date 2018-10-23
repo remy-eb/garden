@@ -2,14 +2,15 @@
 *.log
 npm-debug.log*
 
-# Node dependencies directory
+# Dependencies
 node_modules
+/vendor
 
 # IDEs
 .idea
 *.iml
-/.vscode
-/.vs
+.vscode
+.vs
 
 # Runtime files
 .garden

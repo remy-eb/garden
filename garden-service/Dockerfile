@@ -1,8 +1,5 @@
 FROM node:10.11.0-alpine
 
-WORKDIR /project
-ENTRYPOINT [ "garden" ]
-
 # system dependencies
 RUN apk add --no-cache \
   bash \
@@ -21,19 +18,23 @@ RUN apk add --no-cache \
   && curl -L -o /usr/local/bin/kubectl "https://storage.googleapis.com/kubernetes-release/release/v1.11.3/bin/linux/amd64/kubectl" \
   && chmod +x /usr/local/bin/kubectl
 
+WORKDIR /garden
+
 # npm dependencies
+ADD vendor /garden/vendor
 ADD package.json package-lock.json /garden/
 
-RUN apk add --no-cache --virtual .deps \
-  python2 \
-  make \
-  g++ \
-  && cd /garden && npm install --production \
-  && apk del .deps
+RUN cd vendor/github.com/garden-io/javascript/node-client && \
+  cd /garden && \
+  npm install --production vendor/github.com/garden-io/javascript/node-client && \
+  npm install --production
 
 # garden code
 ADD build /garden/build
 ADD static /garden/static
+
+WORKDIR /project
+ENTRYPOINT [ "garden" ]
 
 RUN ln -s /garden/static/bin/garden /bin/garden \
   && chmod +x /bin/garden
