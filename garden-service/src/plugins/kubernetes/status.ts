@@ -30,6 +30,7 @@ import { KubernetesProvider } from "./kubernetes"
 import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
 import { getContainerServiceStatus } from "./deployment"
+import { V1ReplicationController, V1ReplicaSet } from "@kubernetes/client-node"
 
 export interface RolloutStatus {
   state: ServiceState
@@ -37,6 +38,7 @@ export interface RolloutStatus {
   lastMessage?: string
   lastError?: string
   resourceVersion?: number
+  logs?: string
 }
 
 interface ObjHandler {
@@ -62,16 +64,11 @@ const objHandlers: { [kind: string]: ObjHandler } = {
   },
 
   ReplicaSet: async (api, namespace, obj) => {
-    const res = await api.core.listNamespacedPod(
-      namespace, undefined, undefined, undefined, true, obj.spec.selector.matchLabels,
-    )
-    return checkPodStatus(obj, res.body.items)
+    return checkPodStatus(obj, await getPods(api, namespace, (<V1ReplicaSet>obj).spec.selector.matchLabels))
   },
+
   ReplicationController: async (api, namespace, obj) => {
-    const res = await api.core.listNamespacedPod(
-      namespace, undefined, undefined, undefined, true, obj.spec.selector,
-    )
-    return checkPodStatus(obj, res.body.items)
+    return checkPodStatus(obj, await getPods(api, namespace, (<V1ReplicationController>obj).spec.selector))
   },
 
   Service: async (api, namespace, obj) => {
@@ -95,6 +92,7 @@ const objHandlers: { [kind: string]: ObjHandler } = {
 
 async function checkPodStatus(obj: KubernetesObject, pods: V1Pod[]): Promise<RolloutStatus> {
   for (const pod of pods) {
+    // TODO: detect unhealthy state (currently we just time out)
     const ready = some(pod.status.conditions.map(c => c.type === "ready"))
     if (!ready) {
       return { state: "deploying", obj }
@@ -180,6 +178,11 @@ export async function checkDeploymentStatus(
       }
       out.state = "unhealthy"
       out.lastError = `${event.reason} - ${event.message}`
+
+      // TODO: fetch logs for the pods in the deployment
+      const pods = await getPods(api, namespace, statusRes.spec.selector.matchLabels)
+      out.logs = await getPodLogs(api, namespace, pods)
+
       return out
     }
 
@@ -328,7 +331,13 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
 
     for (const status of statuses) {
       if (status.lastError) {
-        throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {
+        let msg = `Error deploying ${service.name}: ${status.lastError}`
+
+        if (status.logs !== undefined) {
+          msg += "\n\nLogs:\n\n" + status.logs
+        }
+
+        throw new DeploymentError(msg, {
           serviceName: service.name,
           status,
         })
@@ -353,7 +362,7 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
     const now = new Date().getTime()
 
     if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new Error(`Timed out waiting for ${service.name} to deploy`)
+      throw new DeploymentError(`Timed out waiting for ${service.name} to deploy`, { statuses })
     }
   }
 
@@ -467,7 +476,7 @@ async function getDeployedObject(ctx: PluginContext, provider: KubernetesProvide
 /**
  * Recursively removes all null value properties from objects
  */
-export function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof T]: T[K] } {
+function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof T]: T[K] } {
   if (isArray(value)) {
     return value.map(removeNull)
   } else if (isPlainObject(value)) {
@@ -475,4 +484,28 @@ export function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in
   } else {
     return value
   }
+}
+
+/**
+ * Retrieve a list of pods based on the provided label selector.
+ */
+async function getPods(api: KubeApi, namespace: string, selector: { [key: string]: string }): Promise<V1Pod[]> {
+  const selectorString = Object.entries(selector).map(([k, v]) => `${k}=${v}`).join(",")
+  const res = await api.core.listNamespacedPod(
+    namespace, undefined, undefined, undefined, true, selectorString,
+  )
+  return res.body.items
+}
+
+/**
+ * Get a formatted list of log tails for each of the specified pods. Used for debugging and error logs.
+ */
+async function getPodLogs(api: KubeApi, namespace: string, pods: V1Pod[]): Promise<string> {
+  const allLogs = await Bluebird.map(pods, async (pod) => {
+    const res = await api.core.readNamespacedPodLog(
+      pod.metadata.name, namespace, undefined, false, 1000000, undefined, false, undefined, 20,
+    )
+    return `****** ${pod.metadata.name} ******\n${res.body}`
+  })
+  return allLogs.join("\n\n")
 }
