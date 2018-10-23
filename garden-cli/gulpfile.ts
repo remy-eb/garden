@@ -9,10 +9,13 @@
 import { join } from "path"
 import { spawn } from "../support/support-util"
 
+const sources = join(__dirname, "**", "*.go")
+const dockerfiles = join(__dirname, "docker")
+
 module.exports = (gulp) => {
   gulp.task("build-cli", () => spawn("go", ["build", "-o", join("build", "garden")], __dirname))
-  gulp.task("build-container", () => spawn("docker", ["build", "-t", "garden-sync", join(__dirname, "docker", "sync")]))
-  gulp.task("watch", () => gulp.watch([__dirname], gulp.parallel("build")))
+  gulp.task("build-container", () => spawn("docker", ["build", "-t", "garden-sync", join(dockerfiles, "sync")]))
+  gulp.task("watch", () => gulp.watch([sources, dockerfiles], gulp.parallel("build")))
 
   gulp.task("build", gulp.series(
     gulp.parallel("build-cli"),
